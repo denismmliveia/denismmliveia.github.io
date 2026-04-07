@@ -12,22 +12,14 @@ class RaveCardsApp extends StatelessWidget {
     return MaterialApp(
       title: 'RaveCards',
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF8B00FF),
-          brightness: Brightness.dark,
-        ),
-        useMaterial3: true,
+        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFFB300FF)),
+        scaffoldBackgroundColor: const Color(0xFF06000F),
       ),
       home: const Scaffold(
-        backgroundColor: Color(0xFF0A0A0F),
         body: Center(
           child: Text(
-            'RaveCards',
-            style: TextStyle(
-              color: Color(0xFF8B00FF),
-              fontSize: 32,
-              fontWeight: FontWeight.bold,
-            ),
+            'RAVECARDS',
+            style: TextStyle(color: Color(0xFFB300FF), letterSpacing: 5),
           ),
         ),
       ),
