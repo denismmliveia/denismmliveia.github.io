@@ -1,41 +1,43 @@
 // lib/core/router/app_router.dart
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../features/auth/presentation/pages/login_page.dart';
 import '../../features/auth/presentation/pages/phone_verify_page.dart';
+import '../../features/card/presentation/pages/create_card_page.dart';
+import '../../features/card/presentation/pages/my_card_page.dart';
 
 class AppRouter {
   static final GoRouter router = GoRouter(
     initialLocation: '/login',
     redirect: (context, state) async {
-      // Guard básico de auth — se expande en tasks siguientes
+      final user = FirebaseAuth.instance.currentUser;
+      final isOnAuth = state.matchedLocation.startsWith('/login') ||
+          state.matchedLocation.startsWith('/verify-otp');
+
+      if (user == null && !isOnAuth) return '/login';
+      if (user != null && isOnAuth) return '/card';
       return null;
     },
     routes: [
-      GoRoute(
-        path: '/login',
-        builder: (context, state) => const LoginPage(),
-      ),
+      GoRoute(path: '/login', builder: (_, __) => const LoginPage()),
       GoRoute(
         path: '/verify-otp',
-        builder: (context, state) => PhoneVerifyPage(
-          verificationId: state.extra as String,
-        ),
+        builder: (_, state) =>
+            PhoneVerifyPage(verificationId: state.extra as String),
       ),
+      GoRoute(path: '/create-card', builder: (_, __) => const CreateCardPage()),
       GoRoute(
         path: '/card',
-        builder: (context, state) => const Scaffold(
-          body: Center(
-            child: Text('My Card — Task 14', style: TextStyle(color: Colors.white)),
-          ),
-        ),
+        builder: (_, __) => const MyCardPage(),
       ),
+      // Placeholder para Plan 2
       GoRoute(
-        path: '/create-card',
-        builder: (context, state) => const Scaffold(
+        path: '/scan',
+        builder: (_, __) => const Scaffold(
           body: Center(
-            child: Text('Create Card — Task 14', style: TextStyle(color: Colors.white)),
+            child: Text('Scan — Plan 2', style: TextStyle(color: Colors.white)),
           ),
         ),
       ),
