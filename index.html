@@ -138,6 +138,33 @@
     font-size: 9px; letter-spacing: 1px;
     color: rgba(179,0,255,0.4); text-align: center; line-height: 1.4;
   }
+
+  /* ── BOOT SEQUENCE ── */
+  @keyframes bootIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .bg-grid    { opacity: 0; animation: bootIn 0.5s 0.1s  ease forwards; }
+  .bg-glow    { opacity: 0; animation: bootIn 0.5s 0.1s  ease forwards; }
+  .top-bar    { opacity: 0; animation: bootIn 0.4s 0.3s  ease forwards; }
+  .photo-wrap { opacity: 0; animation: bootIn 0.5s 0.5s  ease forwards; }
+  .name       { opacity: 0; animation: bootIn 0.4s 0.7s  ease forwards; }
+  .tagline    { opacity: 0; animation: bootIn 0.4s 0.75s ease forwards; }
+
+  .fields .field:nth-child(1) { opacity: 0; animation: bootIn 0.4s 0.85s ease forwards; }
+  .fields .field:nth-child(2) { opacity: 0; animation: bootIn 0.4s 1.0s  ease forwards; }
+  .fields .field:nth-child(3) { opacity: 0; animation: bootIn 0.4s 1.15s ease forwards; }
+
+  .divider    { opacity: 0; animation: bootIn 0.4s 1.3s  ease forwards; }
+  .qr-section { opacity: 0; animation: bootIn 0.4s 1.3s  ease forwards; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .bg-grid, .bg-glow, .top-bar, .photo-wrap, .name, .tagline,
+    .fields .field, .divider, .qr-section {
+      animation: none; opacity: 1;
+    }
+  }
 </style>
 </head>
 <body>
