@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "1004234391655",
+    "project_id": "ravecards-dev",
+    "storage_bucket": "ravecards-dev.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1004234391655:android:d1f6e5e77db413f316d4c2",
+        "android_client_info": {
+          "package_name": "com.ravecards.ravecards"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1004234391655-osdli9oq7ij50n1peacri22n2psb5use.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.ravecards.ravecards",
+            "certificate_hash": "212cf7a452d2f97416d9cc629e6bddcc6412adf7"
+          }
+        },
+        {
+          "client_id": "1004234391655-ud8moon1ofd55hu3gha9u5b2i50v6je6.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBmuBFyNwgl6Eh6wGhty38AQYFBlCs6s8Y"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1004234391655-ud8moon1ofd55hu3gha9u5b2i50v6je6.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
