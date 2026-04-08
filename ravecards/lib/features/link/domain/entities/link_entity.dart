@@ -25,13 +25,15 @@ class LinkEntity extends Equatable {
     this.expiresAt,
     this.duration,
     this.revokedBy,
-    required this.createdAt,
+    this.createdAt,
   });
 
   String otherUser(String myUid) => userA == myUid ? userB : userA;
 
   bool get isPending => status == 'pending';
   bool get isLinked => status == 'linked';
+  bool get isExpired => status == 'expired';
+  bool get isRevoked => status == 'revoked';
 
   /// Seconds remaining in the 60s pending window. Returns 0 if expired.
   int get pendingSecondsRemaining {
