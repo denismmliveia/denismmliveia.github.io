@@ -42,6 +42,8 @@ import 'package:ravecards/features/card/domain/usecases/refresh_qr_token.dart'
     as _i132;
 import 'package:ravecards/features/card/presentation/cubit/card_cubit.dart'
     as _i759;
+import 'package:ravecards/features/link/data/repositories/link_repository_impl.dart'
+    as _i951;
 import 'package:ravecards/features/link/domain/repositories/link_repository.dart'
     as _i184;
 import 'package:ravecards/features/link/domain/usecases/watch_link.dart'
@@ -66,6 +68,8 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i457.FirebaseStorage>(() => firebaseModule.storage);
     gh.lazySingleton<_i809.FirebaseFunctions>(() => firebaseModule.functions);
     gh.lazySingleton<_i116.GoogleSignIn>(() => firebaseModule.googleSignIn);
+    gh.lazySingleton<_i184.LinkRepository>(
+        () => _i951.LinkRepositoryImpl(gh<_i974.FirebaseFirestore>()));
     gh.factory<_i502.WatchLink>(
         () => _i502.WatchLink(gh<_i184.LinkRepository>()));
     gh.factory<_i843.WatchMyLinks>(
