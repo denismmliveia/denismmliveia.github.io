@@ -31,8 +31,9 @@ dependencies:
   # Auth
   google_sign_in: ^6.2.2
 
-  # QR
+  # QR & Scan
   qr_flutter: ^4.1.0
+  mobile_scanner: ^5.2.3
 
   # Image
   image_picker: ^1.1.2
