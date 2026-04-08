@@ -23,3 +23,11 @@ class ServerFailure extends Failure {
 class NetworkFailure extends Failure {
   const NetworkFailure() : super('Sin conexión a internet');
 }
+
+class LinkFailure extends Failure {
+  const LinkFailure(super.message);
+}
+
+class ScanFailure extends Failure {
+  const ScanFailure(super.message);
+}
