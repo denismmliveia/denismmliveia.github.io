@@ -29,15 +29,13 @@ export const blockUserHandler = async (
 
   const db = admin.firestore();
 
-  // Create the block record (flat doc: blocks/{callerUid}_{targetUid})
+  // Create the block record (subcollection: blocks/{callerUid}/blocked/{targetUid})
   await db
     .collection('blocks')
-    .doc(`${callerUid}_${targetUid}`)
-    .set({
-      blockerUid: callerUid,
-      blockedUid: targetUid,
-      blockedAt: admin.firestore.FieldValue.serverTimestamp(),
-    });
+    .doc(callerUid)
+    .collection('blocked')
+    .doc(targetUid)
+    .set({ blockedAt: admin.firestore.FieldValue.serverTimestamp() });
 
   // If there is an active link to revoke, do it
   if (linkId && typeof linkId === 'string') {

@@ -13,13 +13,28 @@ jest.mock('firebase-admin', () => {
   const mockSet = jest.fn().mockResolvedValue(undefined);
   const mockGet = jest.fn();
   const mockUpdate = jest.fn().mockResolvedValue(undefined);
-  const mockDocFn = jest.fn(() => ({ set: mockSet, get: mockGet, update: mockUpdate }));
-  const mockColFn = jest.fn(() => ({ doc: mockDocFn, add: mockAdd }));
+  // Inner doc (for subcollection)
+  const mockInnerDoc = jest.fn(() => ({ set: mockSet, get: mockGet, update: mockUpdate }));
+  // Inner collection (for .collection('blocked'))
+  const mockInnerCol = jest.fn(() => ({ doc: mockInnerDoc, add: mockAdd }));
+  // Outer doc — supports both .set() and .collection()
+  const mockOuterDoc = jest.fn(() => ({
+    set: mockSet,
+    get: mockGet,
+    update: mockUpdate,
+    collection: mockInnerCol,
+  }));
+  const mockColFn = jest.fn(() => ({ doc: mockOuterDoc, add: mockAdd }));
   const mockFirestore = jest.fn(() => ({ collection: mockColFn }));
   (mockFirestore as any).FieldValue = { serverTimestamp: () => 'SERVER_TS' };
-  return { firestore: Object.assign(mockFirestore, {
-    FieldValue: { serverTimestamp: () => 'SERVER_TS' },
-  }), initializeApp: jest.fn() };
+  (mockFirestore as any).Timestamp = { now: () => ({ toDate: () => new Date() }) };
+  return {
+    firestore: Object.assign(mockFirestore, {
+      FieldValue: { serverTimestamp: () => 'SERVER_TS' },
+      Timestamp: { now: () => ({ toDate: () => new Date() }) },
+    }),
+    initializeApp: jest.fn(),
+  };
 });
 
 jest.mock('../lib/helpers', () => ({
