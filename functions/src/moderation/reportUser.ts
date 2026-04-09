@@ -28,6 +28,10 @@ export const reportUserHandler = async (
     throw new HttpsError('invalid-argument', 'reason is required');
   }
 
+  if (targetUid === callerUid) {
+    throw new HttpsError('invalid-argument', 'Cannot report yourself');
+  }
+
   const db = admin.firestore();
 
   // Create report document
