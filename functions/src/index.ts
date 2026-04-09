@@ -9,3 +9,7 @@ export { generateQrToken, validateQrToken } from './qr/generateQrToken';
 // Link
 export { initiateLink } from './link/initiateLink';
 export { confirmLink } from './link/confirmLink';
+
+// Chat
+export { requestPhotoUploadUrl } from './chat/requestPhotoUploadUrl';
+export { getPhotoViewUrl } from './chat/getPhotoViewUrl';
