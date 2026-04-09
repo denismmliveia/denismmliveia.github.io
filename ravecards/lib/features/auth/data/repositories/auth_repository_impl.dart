@@ -74,6 +74,8 @@ class AuthRepositoryImpl implements AuthRepository {
       return Right(UserModel.fromFirebaseUser(userCred.user!));
     } on FirebaseAuthException catch (e) {
       return Left(AuthFailure(e.message ?? 'Código incorrecto'));
+    } catch (e) {
+      return Left(AuthFailure(e.toString()));
     }
   }
 
