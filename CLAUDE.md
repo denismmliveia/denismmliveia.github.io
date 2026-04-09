@@ -1,4 +1,75 @@
-# Rave Card — Guía técnica
+# RaveCards — Guía técnica del worktree plan-1
+
+> **Este worktree contiene dos cosas distintas:**
+> 1. `index.html` — prototipo visual HTML original (referencia estética, no arquitectura final)
+> 2. `ravecards/` — app Flutter real (Plan 1 completo) + `functions/` Cloud Functions
+
+---
+
+## App Flutter — estado actual (Plan 1 completo)
+
+**Branch:** `feat/plan-1-foundation`  
+**Flutter:** `C:/Users/denis/develop/flutter/bin/flutter.bat` (3.41.6, Dart 3.7+)  
+**Firebase project:** `ravecards-dev`  
+**Tests:** 18 Flutter passing · 6 Jest/TypeScript passing
+
+### Estructura del proyecto Flutter (`ravecards/`)
+
+```
+ravecards/lib/
+  main.dart                        ← Firebase init, DI, MaterialApp.router
+  firebase_options.dart            ← generado por FlutterFire CLI
+  core/
+    di/injection_container.dart    ← GetIt + @injectable
+    router/app_router.dart         ← GoRouter con auth guard
+    theme/app_colors.dart          ← tokens: background/#06000F, purple/#B300FF, green/#39FF14
+    theme/app_theme.dart           ← ThemeData dark completo
+    error/failures.dart            ← AuthFailure, CardFailure, ServerFailure, NetworkFailure
+  features/
+    auth/
+      domain/                      ← UserEntity, AuthRepository (interfaz), usecases
+      data/                        ← UserModel, AuthRepositoryImpl (Firebase Auth + Firestore)
+      presentation/cubit/          ← AuthCubit, AuthState (Initial/Loading/OtpSent/Authenticated/Error)
+      presentation/pages/          ← LoginPage, PhoneVerifyPage
+      presentation/widgets/        ← PhoneInputWidget
+    card/
+      domain/                      ← CardEntity (+ copyWith), CardRepository (interfaz), usecases
+      data/                        ← CardModel, CardRepositoryImpl (Firestore + Storage + Functions)
+      presentation/cubit/          ← CardCubit (con Timer auto-refresh 4min), CardState
+      presentation/pages/          ← MyCardPage, CreateCardPage
+      presentation/widgets/        ← RaveCardWidget (grid+glow+dot pulsante), QrDisplayWidget
+
+functions/
+  src/qr/generateQrToken.ts        ← JWT TTL 5min, firebase-functions v2 API
+  test/qr/generateQrToken.test.ts
+```
+
+### Comandos frecuentes
+
+```bash
+# Desde ravecards/
+"C:/Users/denis/develop/flutter/bin/flutter.bat" analyze lib/
+"C:/Users/denis/develop/flutter/bin/flutter.bat" test
+"C:/Users/denis/develop/flutter/bin/dart.bat" run build_runner build --delete-conflicting-outputs
+"C:/Users/denis/develop/flutter/bin/flutter.bat" build apk --debug
+
+# Desde functions/
+npm run build
+npm test
+```
+
+### Decisiones técnicas clave
+
+- **firebase-functions v6** usa API v2: importar desde `firebase-functions/v2/https`, usar `CallableRequest` (no `CallableContext`), secreto via `process.env.QR_SECRET` (no `functions.config()`)
+- **`withOpacity()`** está deprecado → usar `withValues(alpha: x)`
+- **`DropdownButtonFormField.value`** está deprecado → usar `InputDecorator` + `DropdownButton` sin underline
+- **CardCubit.refreshQr** solo actualiza `activeQrToken`, no `qrTokenExpiresAt` (evita race condition con DateTime.now() en tests)
+- **Auth guard** en GoRouter: si no hay usuario Firebase y ruta no es /login o /verify-otp → redirige a /login
+- **Firestore rule** para `/users/{uid}`: owner puede escribir `displayName` y `photoUrl` pero NO `activeQrToken` (solo Cloud Functions)
+
+---
+
+## Prototipo HTML original — referencia estética
 
 Tarjeta de presentación digital de uso social. Un solo archivo HTML autocontenido, sin dependencias externas, publicable en GitHub Pages.
 
