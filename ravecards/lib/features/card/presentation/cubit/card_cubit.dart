@@ -51,7 +51,12 @@ class CardCubit extends Cubit<CardState> {
       },
       (card) {
         emit(CardLoaded(card));
-        _scheduleQrRefresh(uid);
+        if (card.activeQrToken == null) {
+          // Primera carga sin token: generar QR inmediatamente
+          refreshQr(uid);
+        } else {
+          _scheduleQrRefresh(uid);
+        }
       },
     );
   }

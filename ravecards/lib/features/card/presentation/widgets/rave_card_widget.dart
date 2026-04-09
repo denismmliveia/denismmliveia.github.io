@@ -37,11 +37,10 @@ class RaveCardWidget extends StatelessWidget {
       child: Stack(
         children: [
           // Grid de fondo
-          ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child: CustomPaint(
-              painter: _GridPainter(),
-              child: const SizedBox.expand(),
+          Positioned.fill(
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: CustomPaint(painter: _GridPainter()),
             ),
           ),
           // Glow superior
