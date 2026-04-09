@@ -2,6 +2,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../core/di/injection_container.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../cubit/links_cubit.dart';
@@ -59,9 +60,15 @@ class _LinksView extends StatelessWidget {
               ),
             LinksLoaded(:final links) => ListView.builder(
                 itemCount: links.length,
-                itemBuilder: (context, i) => LinkCardWidget(
-                  link: links[i],
-                  myUid: myUid,
+                itemBuilder: (context, i) => InkWell(
+                  onTap: () => context.push(
+                    '/chat/${links[i].linkId}',
+                    extra: links[i],
+                  ),
+                  child: LinkCardWidget(
+                    link: links[i],
+                    myUid: myUid,
+                  ),
                 ),
               ),
             _ => const SizedBox.shrink(),

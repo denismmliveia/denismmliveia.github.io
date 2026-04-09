@@ -1,16 +1,17 @@
 import 'dart:async';
 import 'dart:typed_data';
-import 'package:bloc/bloc.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:injectable/injectable.dart';
 import '../../domain/usecases/watch_messages.dart';
 import '../../domain/usecases/send_text_message.dart';
 import '../../domain/usecases/send_photo_message.dart';
 import '../../domain/usecases/request_photo_view.dart';
 import '../../domain/usecases/get_other_user_profile.dart';
 import '../../../link/domain/usecases/watch_link.dart';
-import '../../../../core/error/failures.dart';
 import 'chat_state.dart';
 
+@injectable
 class ChatCubit extends Cubit<ChatState> {
   final WatchMessages _watchMessages;
   final SendTextMessage _sendText;

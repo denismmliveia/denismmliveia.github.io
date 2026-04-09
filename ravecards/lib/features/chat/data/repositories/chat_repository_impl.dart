@@ -62,7 +62,7 @@ class ChatRepositoryImpl implements ChatRepository {
   Future<Either<Failure, Unit>> sendText(String linkId, String text) async {
     final currentUser = _auth.currentUser;
     if (currentUser == null) {
-      return Left(ChatFailure('Cannot send message: no authenticated user'));
+      return const Left(ChatFailure('Cannot send message: no authenticated user'));
     }
     try {
       await _messagesRef(linkId).add({
@@ -139,7 +139,7 @@ class ChatRepositoryImpl implements ChatRepository {
     try {
       final doc = await _firestore.collection('users').doc(uid).get();
       if (!doc.exists || doc.data() == null) {
-        return Left(ChatFailure('User not found'));
+        return const Left(ChatFailure('User not found'));
       }
       final data = doc.data()!;
       return Right({

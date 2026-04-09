@@ -15,6 +15,7 @@ import 'package:firebase_auth/firebase_auth.dart' as _i59;
 import 'package:firebase_storage/firebase_storage.dart' as _i457;
 import 'package:get_it/get_it.dart' as _i174;
 import 'package:google_sign_in/google_sign_in.dart' as _i116;
+import 'package:http/http.dart' as _i519;
 import 'package:injectable/injectable.dart' as _i526;
 import 'package:ravecards/core/di/injection_container.dart' as _i23;
 import 'package:ravecards/features/auth/data/repositories/auth_repository_impl.dart'
@@ -42,6 +43,22 @@ import 'package:ravecards/features/card/domain/usecases/refresh_qr_token.dart'
     as _i132;
 import 'package:ravecards/features/card/presentation/cubit/card_cubit.dart'
     as _i759;
+import 'package:ravecards/features/chat/data/repositories/chat_repository_impl.dart'
+    as _i698;
+import 'package:ravecards/features/chat/domain/repositories/chat_repository.dart'
+    as _i190;
+import 'package:ravecards/features/chat/domain/usecases/get_other_user_profile.dart'
+    as _i966;
+import 'package:ravecards/features/chat/domain/usecases/request_photo_view.dart'
+    as _i611;
+import 'package:ravecards/features/chat/domain/usecases/send_photo_message.dart'
+    as _i1004;
+import 'package:ravecards/features/chat/domain/usecases/send_text_message.dart'
+    as _i90;
+import 'package:ravecards/features/chat/domain/usecases/watch_messages.dart'
+    as _i28;
+import 'package:ravecards/features/chat/presentation/cubit/chat_cubit.dart'
+    as _i58;
 import 'package:ravecards/features/link/data/repositories/link_repository_impl.dart'
     as _i951;
 import 'package:ravecards/features/link/domain/repositories/link_repository.dart'
@@ -84,6 +101,13 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i457.FirebaseStorage>(() => firebaseModule.storage);
     gh.lazySingleton<_i809.FirebaseFunctions>(() => firebaseModule.functions);
     gh.lazySingleton<_i116.GoogleSignIn>(() => firebaseModule.googleSignIn);
+    gh.lazySingleton<_i519.Client>(() => firebaseModule.httpClient);
+    gh.lazySingleton<_i190.ChatRepository>(() => _i698.ChatRepositoryImpl(
+          firestore: gh<_i974.FirebaseFirestore>(),
+          auth: gh<_i59.FirebaseAuth>(),
+          functions: gh<_i809.FirebaseFunctions>(),
+          httpClient: gh<_i519.Client>(),
+        ));
     gh.lazySingleton<_i184.LinkRepository>(
         () => _i951.LinkRepositoryImpl(gh<_i974.FirebaseFirestore>()));
     gh.lazySingleton<_i476.ScanRepository>(() => _i679.ScanRepositoryImpl(
@@ -104,6 +128,16 @@ extension GetItInjectableX on _i174.GetIt {
           storage: gh<_i457.FirebaseStorage>(),
           functions: gh<_i809.FirebaseFunctions>(),
         ));
+    gh.factory<_i966.GetOtherUserProfile>(
+        () => _i966.GetOtherUserProfile(gh<_i190.ChatRepository>()));
+    gh.factory<_i611.RequestPhotoView>(
+        () => _i611.RequestPhotoView(gh<_i190.ChatRepository>()));
+    gh.factory<_i1004.SendPhotoMessage>(
+        () => _i1004.SendPhotoMessage(gh<_i190.ChatRepository>()));
+    gh.factory<_i90.SendTextMessage>(
+        () => _i90.SendTextMessage(gh<_i190.ChatRepository>()));
+    gh.factory<_i28.WatchMessages>(
+        () => _i28.WatchMessages(gh<_i190.ChatRepository>()));
     gh.factory<_i578.GetAuthState>(
         () => _i578.GetAuthState(gh<_i969.AuthRepository>()));
     gh.factory<_i86.SendOtp>(() => _i86.SendOtp(gh<_i969.AuthRepository>()));
@@ -112,6 +146,15 @@ extension GetItInjectableX on _i174.GetIt {
     gh.factory<_i798.SignOut>(() => _i798.SignOut(gh<_i969.AuthRepository>()));
     gh.factory<_i661.VerifyOtp>(
         () => _i661.VerifyOtp(gh<_i969.AuthRepository>()));
+    gh.factory<_i58.ChatCubit>(() => _i58.ChatCubit(
+          watchMessages: gh<_i28.WatchMessages>(),
+          sendText: gh<_i90.SendTextMessage>(),
+          sendPhoto: gh<_i1004.SendPhotoMessage>(),
+          requestView: gh<_i611.RequestPhotoView>(),
+          getOtherUserProfile: gh<_i966.GetOtherUserProfile>(),
+          watchLink: gh<_i502.WatchLink>(),
+          auth: gh<_i59.FirebaseAuth>(),
+        ));
     gh.factory<_i397.ConfirmLink>(
         () => _i397.ConfirmLink(gh<_i476.ScanRepository>()));
     gh.factory<_i1030.InitiateLink>(

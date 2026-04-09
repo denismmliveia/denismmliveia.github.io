@@ -1,6 +1,5 @@
 // lib/core/router/app_router.dart
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
@@ -9,6 +8,9 @@ import '../../features/auth/presentation/pages/login_page.dart';
 import '../../features/auth/presentation/pages/phone_verify_page.dart';
 import '../../features/card/presentation/pages/create_card_page.dart';
 import '../../features/card/presentation/pages/my_card_page.dart';
+import '../../features/chat/presentation/cubit/chat_cubit.dart';
+import '../../features/chat/presentation/pages/chat_page.dart';
+import '../../features/link/domain/entities/link_entity.dart';
 import '../../features/link/presentation/pages/links_page.dart';
 import '../../features/memories/presentation/pages/memories_stub_page.dart';
 import '../../features/scan/presentation/cubit/scan_cubit.dart';
@@ -74,19 +76,17 @@ class AppRouter {
         ],
       ),
 
-      // Chat route stub — Plan 3
+      // Chat route (full-screen — outside shell, no bottom nav)
       GoRoute(
         path: '/chat/:linkId',
-        builder: (_, state) => Scaffold(
-          backgroundColor: const Color(0xFF06000F),
-          body: Center(
-            child: Text(
-              'Chat — Plan 3\n${state.pathParameters['linkId']}',
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: Colors.white),
-            ),
-          ),
-        ),
+        builder: (_, state) {
+          final linkId = state.pathParameters['linkId']!;
+          final link = state.extra as LinkEntity;
+          return BlocProvider(
+            create: (_) => sl<ChatCubit>(),
+            child: ChatPage(linkId: linkId, link: link),
+          );
+        },
       ),
 
       // Main shell with bottom navigation
