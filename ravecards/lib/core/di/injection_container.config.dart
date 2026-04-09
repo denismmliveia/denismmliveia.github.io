@@ -50,6 +50,16 @@ import 'package:ravecards/features/link/domain/usecases/watch_link.dart'
     as _i502;
 import 'package:ravecards/features/link/domain/usecases/watch_my_links.dart'
     as _i843;
+import 'package:ravecards/features/scan/domain/repositories/scan_repository.dart'
+    as _i476;
+import 'package:ravecards/features/scan/domain/usecases/confirm_link.dart'
+    as _i397;
+import 'package:ravecards/features/scan/domain/usecases/initiate_link.dart'
+    as _i1030;
+import 'package:ravecards/features/scan/domain/usecases/preview_card.dart'
+    as _i718;
+import 'package:ravecards/features/scan/domain/usecases/validate_qr_token.dart'
+    as _i248;
 
 extension GetItInjectableX on _i174.GetIt {
 // initializes the registration of main-scope dependencies inside of GetIt
@@ -68,6 +78,14 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i457.FirebaseStorage>(() => firebaseModule.storage);
     gh.lazySingleton<_i809.FirebaseFunctions>(() => firebaseModule.functions);
     gh.lazySingleton<_i116.GoogleSignIn>(() => firebaseModule.googleSignIn);
+    gh.factory<_i397.ConfirmLink>(
+        () => _i397.ConfirmLink(gh<_i476.ScanRepository>()));
+    gh.factory<_i1030.InitiateLink>(
+        () => _i1030.InitiateLink(gh<_i476.ScanRepository>()));
+    gh.factory<_i718.PreviewCard>(
+        () => _i718.PreviewCard(gh<_i476.ScanRepository>()));
+    gh.factory<_i248.ValidateQrToken>(
+        () => _i248.ValidateQrToken(gh<_i476.ScanRepository>()));
     gh.lazySingleton<_i184.LinkRepository>(
         () => _i951.LinkRepositoryImpl(gh<_i974.FirebaseFirestore>()));
     gh.factory<_i502.WatchLink>(
