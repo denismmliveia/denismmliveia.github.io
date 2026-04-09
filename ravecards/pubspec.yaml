@@ -39,6 +39,10 @@ dependencies:
   image_picker: ^1.1.2
   cached_network_image: ^3.4.1
 
+  # Chat & Network
+  flutter_windowmanager: ^0.2.0
+  http: ^1.2.0
+
   # Functional
   dartz: ^0.10.1
 
