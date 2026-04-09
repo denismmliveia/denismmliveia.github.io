@@ -51,8 +51,18 @@ export const initiateLinkHandler = async (
     throw new HttpsError('invalid-argument', 'Cannot scan your own QR');
   }
 
-  // 3. Check if target has blocked scanner (silent rejection)
   const db = admin.firestore();
+
+  // 2.5 Verify the token is the CURRENT activeQrToken in the database (prevents replay)
+  const targetUserDoc = await db.collection('users').doc(targetUid).get();
+  if (!targetUserDoc.exists) {
+    throw new HttpsError('not-found', 'User not found');
+  }
+  if (targetUserDoc.data()!.activeQrToken !== request.data.token) {
+    throw new HttpsError('invalid-argument', 'Invalid or expired QR token');
+  }
+
+  // 3. Check if target has blocked scanner (silent rejection)
   const now = new Date();
 
   const blockDoc = await db

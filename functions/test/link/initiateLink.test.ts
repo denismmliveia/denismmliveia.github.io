@@ -34,7 +34,8 @@ const mockFirestore = {
   })),
 };
 
-// User doc for target
+// User doc for target — activeQrToken is set dynamically in beforeEach
+let mockActiveQrToken: string = '';
 const mockUserDoc = {
   data: () => ({
     displayName: 'DJ GHOST',
@@ -43,6 +44,7 @@ const mockUserDoc = {
     orientation: 'Bisexual',
     relationshipStatus: 'Free',
     favoriteTheme: 'Industrial',
+    activeQrToken: mockActiveQrToken,
   }),
   exists: true,
 };
@@ -105,6 +107,8 @@ describe('initiateLink', () => {
   beforeEach(() => {
     mockLinkDocs = [];
     lastCreatedLink = null;
+    // Default: token matches DB (happy-path). Tests that need a mismatch override mockActiveQrToken.
+    mockActiveQrToken = makeToken(TARGET_UID);
     // Reset the user doc mock
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     mockFirestore.collection.mockImplementation((col: string): any => {
@@ -139,6 +143,16 @@ describe('initiateLink', () => {
     const selfToken = makeToken(SCANNER_UID);
     const req = { auth: { uid: SCANNER_UID }, data: { token: selfToken } } as any;
     await expect(initiateLinkHandler(req)).rejects.toThrow();
+  });
+
+  it('throws invalid-argument when token does not match activeQrToken in DB (replay attack)', async () => {
+    // The presented token is JWT-valid but NOT the current activeQrToken stored in the DB
+    const presentedToken = makeToken(TARGET_UID);
+    mockActiveQrToken = makeToken(TARGET_UID, 120); // DB holds a different (older) token
+    const req = { auth: { uid: SCANNER_UID }, data: { token: presentedToken } } as any;
+    const err: any = await initiateLinkHandler(req).catch((e: any) => e);
+    expect(err.code).toBe('invalid-argument');
+    expect(err.message).toMatch(/Invalid or expired QR token/);
   });
 
   it('creates a new PENDING link when no existing link', async () => {
