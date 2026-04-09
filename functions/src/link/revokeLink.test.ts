@@ -1,6 +1,8 @@
 import { revokeLinkHandler } from './revokeLink';
 import * as admin from 'firebase-admin';
 
+jest.mock('firebase-functions/v2', () => ({ setGlobalOptions: jest.fn() }));
+
 jest.mock('firebase-admin', () => {
   const mockGet = jest.fn();
   const mockUpdate = jest.fn().mockResolvedValue(undefined);
