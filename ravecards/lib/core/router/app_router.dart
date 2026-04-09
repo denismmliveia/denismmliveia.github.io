@@ -44,34 +44,30 @@ class AppRouter {
       GoRoute(
           path: '/create-card', builder: (_, __) => const CreateCardPage()),
 
-      // Scan routes (full-screen — outside shell, ScanCubit provided here)
-      GoRoute(
-        path: '/scan',
-        builder: (_, __) => BlocProvider(
+      // Scan routes (full-screen — ShellRoute keeps ScanCubit alive across sub-routes)
+      ShellRoute(
+        builder: (context, state, child) => BlocProvider(
           create: (_) => sl<ScanCubit>(),
-          child: const ScanCameraPage(),
+          child: child,
         ),
         routes: [
           GoRoute(
-            path: 'preview',
-            builder: (context, __) => BlocProvider.value(
-              value: BlocProvider.of<ScanCubit>(context),
-              child: const ScanPreviewPage(),
-            ),
-          ),
-          GoRoute(
-            path: 'pending/:linkId',
-            builder: (context, __) => BlocProvider.value(
-              value: BlocProvider.of<ScanCubit>(context),
-              child: const ScanPendingPage(),
-            ),
-          ),
-          GoRoute(
-            path: 'linked/:linkId',
-            builder: (context, __) => BlocProvider.value(
-              value: BlocProvider.of<ScanCubit>(context),
-              child: const ScanLinkedPage(),
-            ),
+            path: '/scan',
+            builder: (_, __) => const ScanCameraPage(),
+            routes: [
+              GoRoute(
+                path: 'preview',
+                builder: (_, __) => const ScanPreviewPage(),
+              ),
+              GoRoute(
+                path: 'pending/:linkId',
+                builder: (_, __) => const ScanPendingPage(),
+              ),
+              GoRoute(
+                path: 'linked/:linkId',
+                builder: (_, __) => const ScanLinkedPage(),
+              ),
+            ],
           ),
         ],
       ),
