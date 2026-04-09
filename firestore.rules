@@ -15,20 +15,29 @@ service cloud.firestore {
       allow read: if request.auth != null &&
         (resource.data.userA == request.auth.uid || resource.data.userB == request.auth.uid);
       allow write: if false;
+    }
 
-      match /messages/{msgId} {
-        allow read: if request.auth != null &&
-          (get(/databases/$(database)/documents/links/$(linkId)).data.userA == request.auth.uid ||
-           get(/databases/$(database)/documents/links/$(linkId)).data.userB == request.auth.uid);
-        allow create: if request.auth != null
-          && request.resource.data.senderId == request.auth.uid
-          && get(/databases/$(database)/documents/links/$(linkId)).data.status == 'linked'
-          && (get(/databases/$(database)/documents/links/$(linkId)).data.userA == request.auth.uid ||
-              get(/databases/$(database)/documents/links/$(linkId)).data.userB == request.auth.uid)
-          && request.resource.data.type == 'text';
-        allow update: if false;
-        allow delete: if false;
+    match /links/{linkId}/messages/{msgId} {
+      function isLinkParticipant() {
+        let link = get(/databases/$(database)/documents/links/$(linkId)).data;
+        return request.auth.uid == link.userA || request.auth.uid == link.userB;
       }
+
+      function isLinkActive() {
+        let link = get(/databases/$(database)/documents/links/$(linkId)).data;
+        return link.status == 'linked';
+      }
+
+      allow read: if request.auth != null && isLinkParticipant();
+
+      allow create: if request.auth != null
+        && isLinkParticipant()
+        && isLinkActive()
+        && request.resource.data.senderId == request.auth.uid
+        && request.resource.data.createdAt == request.time;
+
+      // viewedBy and deletedFromStorage are only updated by Cloud Functions (Admin SDK bypasses rules)
+      allow update, delete: if false;
     }
 
     // Recuerdos: solo el propietario puede leer, solo Cloud Functions escriben
