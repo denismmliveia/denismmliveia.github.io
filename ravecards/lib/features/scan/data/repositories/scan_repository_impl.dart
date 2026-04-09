@@ -14,7 +14,11 @@ class ScanRepositoryImpl implements ScanRepository {
   final FirebaseFunctions _functions;
   final FirebaseFirestore _firestore;
 
-  ScanRepositoryImpl(this._functions, this._firestore);
+  ScanRepositoryImpl({
+    required FirebaseFunctions functions,
+    required FirebaseFirestore firestore,
+  })  : _functions = functions,
+        _firestore = firestore;
 
   @override
   Future<Either<Failure, String>> validateQrToken(String token) async {

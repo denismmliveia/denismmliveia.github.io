@@ -82,14 +82,14 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i116.GoogleSignIn>(() => firebaseModule.googleSignIn);
     gh.lazySingleton<_i184.LinkRepository>(
         () => _i951.LinkRepositoryImpl(gh<_i974.FirebaseFirestore>()));
+    gh.lazySingleton<_i476.ScanRepository>(() => _i679.ScanRepositoryImpl(
+          functions: gh<_i809.FirebaseFunctions>(),
+          firestore: gh<_i974.FirebaseFirestore>(),
+        ));
     gh.factory<_i502.WatchLink>(
         () => _i502.WatchLink(gh<_i184.LinkRepository>()));
     gh.factory<_i843.WatchMyLinks>(
         () => _i843.WatchMyLinks(gh<_i184.LinkRepository>()));
-    gh.lazySingleton<_i476.ScanRepository>(() => _i679.ScanRepositoryImpl(
-          gh<_i809.FirebaseFunctions>(),
-          gh<_i974.FirebaseFirestore>(),
-        ));
     gh.lazySingleton<_i969.AuthRepository>(() => _i838.AuthRepositoryImpl(
           firebaseAuth: gh<_i59.FirebaseAuth>(),
           firestore: gh<_i974.FirebaseFirestore>(),

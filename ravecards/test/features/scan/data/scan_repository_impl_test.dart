@@ -4,6 +4,8 @@ import 'package:dartz/dartz.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
+import 'package:ravecards/core/error/failures.dart';
+import 'package:ravecards/features/card/domain/entities/card_entity.dart';
 import 'package:ravecards/features/scan/data/repositories/scan_repository_impl.dart';
 import 'package:ravecards/features/scan/domain/entities/scan_result_entity.dart';
 
@@ -26,7 +28,10 @@ void main() {
   setUp(() {
     mockFunctions = MockFirebaseFunctions();
     mockFirestore = MockFirebaseFirestore();
-    repository = ScanRepositoryImpl(mockFunctions, mockFirestore);
+    repository = ScanRepositoryImpl(
+      functions: mockFunctions,
+      firestore: mockFirestore,
+    );
   });
 
   group('validateQrToken', () {
@@ -56,6 +61,77 @@ void main() {
       when(mockResult.data).thenReturn({'valid': false});
 
       final result = await repository.validateQrToken('bad-token');
+
+      expect(result, const Left(ScanFailure('QR inválido o expirado')));
+    });
+  });
+
+  group('previewCard', () {
+    test('returns CardEntity when document exists', () async {
+      final mockCollection =
+          MockCollectionReference<Map<String, dynamic>>();
+      final mockDocRef =
+          MockDocumentReference<Map<String, dynamic>>();
+      final mockSnap =
+          MockDocumentSnapshot<Map<String, dynamic>>();
+
+      when(mockFirestore.collection('users')).thenReturn(mockCollection);
+      when(mockCollection.doc('uid-b')).thenReturn(mockDocRef);
+      when(mockDocRef.get()).thenAnswer((_) async => mockSnap);
+      when(mockSnap.exists).thenReturn(true);
+      when(mockSnap.id).thenReturn('uid-b');
+      when(mockSnap.data()).thenReturn({
+        'displayName': 'Denis',
+        'photoUrl': 'https://example.com/photo.jpg',
+        'genre': 'Hard Techno',
+        'orientation': 'Straight',
+        'relationshipStatus': 'Single',
+        'favoriteTheme': 'Dark',
+      });
+
+      final result = await repository.previewCard('uid-b');
+
+      expect(result.isRight(), isTrue);
+      result.fold(
+        (l) => fail('Expected Right but got Left: $l'),
+        (card) {
+          expect(card, isA<CardEntity>());
+          expect(card.uid, 'uid-b');
+          expect(card.displayName, 'Denis');
+          expect(card.genre, 'Hard Techno');
+        },
+      );
+    });
+
+    test('returns ScanFailure when document does not exist', () async {
+      final mockCollection =
+          MockCollectionReference<Map<String, dynamic>>();
+      final mockDocRef =
+          MockDocumentReference<Map<String, dynamic>>();
+      final mockSnap =
+          MockDocumentSnapshot<Map<String, dynamic>>();
+
+      when(mockFirestore.collection('users')).thenReturn(mockCollection);
+      when(mockCollection.doc('uid-missing')).thenReturn(mockDocRef);
+      when(mockDocRef.get()).thenAnswer((_) async => mockSnap);
+      when(mockSnap.exists).thenReturn(false);
+
+      final result = await repository.previewCard('uid-missing');
+
+      expect(result, const Left(ScanFailure('Usuario no encontrado')));
+    });
+
+    test('returns ScanFailure when Firestore throws', () async {
+      final mockCollection =
+          MockCollectionReference<Map<String, dynamic>>();
+      final mockDocRef =
+          MockDocumentReference<Map<String, dynamic>>();
+
+      when(mockFirestore.collection('users')).thenReturn(mockCollection);
+      when(mockCollection.doc('uid-error')).thenReturn(mockDocRef);
+      when(mockDocRef.get()).thenThrow(Exception('firestore error'));
+
+      final result = await repository.previewCard('uid-error');
 
       expect(result.isLeft(), isTrue);
     });
@@ -98,6 +174,16 @@ void main() {
       final result = await repository.initiateLink('jwt-token-456');
 
       expect(result, const Right(InitiateLinkResult(linkId: 'link-xyz', isMutual: true)));
+    });
+
+    test('returns ScanFailure when function throws', () async {
+      final mockCallable = MockHttpsCallable();
+      when(mockFunctions.httpsCallable('initiateLink')).thenReturn(mockCallable);
+      when(mockCallable.call(any)).thenThrow(Exception('network error'));
+
+      final result = await repository.initiateLink('any-token');
+
+      expect(result.isLeft(), isTrue);
     });
   });
 
