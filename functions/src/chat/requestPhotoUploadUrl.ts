@@ -9,6 +9,9 @@ async function handler(request: CallableRequest<{ linkId: string; msgId: string 
   if (!uid) throw new HttpsError('unauthenticated', 'Not authenticated');
 
   const { linkId, msgId } = request.data;
+  if (!linkId || typeof linkId !== 'string' || !msgId || typeof msgId !== 'string') {
+    throw new HttpsError('invalid-argument', 'linkId and msgId are required');
+  }
 
   const linkDoc = await admin.firestore().collection('links').doc(linkId).get();
   if (!linkDoc.exists) throw new HttpsError('not-found', 'Link not found');

@@ -4,6 +4,13 @@ import { describe, it, expect, jest, beforeEach } from '@jest/globals';
 const mockMsgUpdate: jest.Mock<any> = jest.fn();
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const mockMsgGet: jest.Mock<any> = jest.fn();
+// Transaction-level get and update mocks
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const mockTxGet: jest.Mock<any> = jest.fn();
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const mockTxUpdate: jest.Mock<any> = jest.fn();
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const mockRunTransaction: jest.Mock<any> = jest.fn();
 const mockMsgRef = { get: mockMsgGet, update: mockMsgUpdate };
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const mockMsgsCollection: jest.Mock<any> = jest.fn().mockReturnValue({ doc: jest.fn().mockReturnValue(mockMsgRef) });
@@ -24,9 +31,12 @@ const mockBucket: jest.Mock<any> = jest.fn().mockReturnValue({ file: mockBucketF
 const mockArrayUnion = jest.fn((v: string) => ({ _type: 'arrayUnion', value: v }));
 
 jest.mock('firebase-admin', () => ({
-  firestore: Object.assign(() => ({ collection: mockLinksCollection }), {
-    FieldValue: { arrayUnion: mockArrayUnion },
-  }),
+  firestore: Object.assign(
+    () => ({ collection: mockLinksCollection, runTransaction: mockRunTransaction }),
+    {
+      FieldValue: { arrayUnion: mockArrayUnion },
+    }
+  ),
   storage: () => ({ bucket: mockBucket }),
   initializeApp: jest.fn(),
   apps: ['app'],
@@ -59,6 +69,12 @@ describe('getPhotoViewUrl', () => {
     mockMsgGet.mockResolvedValue({ exists: true, data: () => ({ ...photoMsg }) });
     mockGetSignedUrl.mockResolvedValue(['https://storage.example.com/view?sig=xyz']);
     mockMsgUpdate.mockResolvedValue(undefined);
+    mockTxGet.mockResolvedValue({ data: () => ({ ...photoMsg }) });
+    mockTxUpdate.mockReturnValue(undefined);
+    // Default runTransaction: executes the callback with a mock transaction object
+    mockRunTransaction.mockImplementation(async (fn: Function) => {
+      await fn({ get: mockTxGet, update: mockTxUpdate });
+    });
     // Re-wire mocks cleared by clearAllMocks
     mockMsgsCollection.mockReturnValue({ doc: jest.fn().mockReturnValue(mockMsgRef) });
     mockLinkDoc.mockReturnValue({ get: mockLinkGet, collection: mockMsgsCollection });
@@ -93,7 +109,8 @@ describe('getPhotoViewUrl', () => {
     const result = await fn({ auth: { uid: 'uid-alice' }, data: { linkId: 'link-1', msgId: 'msg-1' } });
 
     expect(result.viewUrl).toBe('https://storage.example.com/view?sig=xyz');
-    expect(mockMsgUpdate).toHaveBeenCalledWith(
+    expect(mockTxUpdate).toHaveBeenCalledWith(
+      mockMsgRef,
       expect.objectContaining({ viewedBy: expect.anything() })
     );
     expect(mockGetSignedUrl).toHaveBeenCalledWith(
@@ -103,12 +120,16 @@ describe('getPhotoViewUrl', () => {
 
   it('deletes from Storage and marks deletedFromStorage when both users have viewed', async () => {
     // uid-bob has already viewed; uid-alice views now → both viewed
+    // The initial msgDoc read (outside transaction) must show viewedBy: ['uid-bob']
     mockMsgGet.mockResolvedValue({ exists: true, data: () => ({ ...photoMsg, viewedBy: ['uid-bob'] }) });
+    // The fresh read inside the transaction must also show viewedBy: ['uid-bob']
+    mockTxGet.mockResolvedValue({ data: () => ({ ...photoMsg, viewedBy: ['uid-bob'] }) });
     const fn = (getPhotoViewUrl as any).__handler;
     await fn({ auth: { uid: 'uid-alice' }, data: { linkId: 'link-1', msgId: 'msg-1' } });
 
     expect(mockFileDelete).toHaveBeenCalled();
-    expect(mockMsgUpdate).toHaveBeenCalledWith(
+    expect(mockTxUpdate).toHaveBeenCalledWith(
+      mockMsgRef,
       expect.objectContaining({ deletedFromStorage: true })
     );
   });
