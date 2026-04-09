@@ -31,3 +31,7 @@ class LinkFailure extends Failure {
 class ScanFailure extends Failure {
   const ScanFailure(super.message);
 }
+
+class ChatFailure extends Failure {
+  const ChatFailure(super.message);
+}
