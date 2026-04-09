@@ -168,4 +168,4 @@ export const initiateLinkHandler = async (
   return { status: 'pending', linkId: newLink.id, isMutual: false };
 };
 
-export const initiateLink = onCall(initiateLinkHandler);
+export const initiateLink = onCall({ secrets: ['QR_SECRET'] }, initiateLinkHandler);
