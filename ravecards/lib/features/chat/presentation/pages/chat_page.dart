@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_windowmanager_plus/flutter_windowmanager_plus.dart';
+import '../../../../core/di/injection_container.dart';
 import '../../../link/domain/entities/link_entity.dart';
 import '../../../link/presentation/widgets/countdown_widget.dart';
+import '../../../moderation/domain/usecases/revoke_link.dart';
+import '../../../moderation/domain/usecases/block_user.dart';
+import '../../../moderation/domain/usecases/report_user.dart';
 import '../../domain/entities/message_entity.dart';
 import '../cubit/chat_cubit.dart';
 import '../cubit/chat_state.dart';
@@ -52,6 +56,136 @@ class _ChatPageState extends State<ChatPage> {
         );
       }
     });
+  }
+
+  Future<void> _confirmRevoke(BuildContext context) async {
+    final nav = Navigator.of(context);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        backgroundColor: const Color(0xFF0D0020),
+        title: const Text('Revocar vínculo',
+            style: TextStyle(color: Colors.white)),
+        content: const Text(
+          '¿Seguro? El chat y el vínculo desaparecerán para ambos.',
+          style: TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => nav.pop(false),
+            child: const Text('Cancelar',
+                style: TextStyle(color: Colors.white54)),
+          ),
+          TextButton(
+            onPressed: () => nav.pop(true),
+            child: const Text('Revocar',
+                style: TextStyle(color: Color(0xFFFF3B30))),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true && mounted) {
+      await sl<RevokeLink>().call(widget.linkId);
+      if (mounted) nav.pop();
+    }
+  }
+
+  Future<void> _confirmBlock(BuildContext context, String targetUid) async {
+    final nav = Navigator.of(context);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        backgroundColor: const Color(0xFF0D0020),
+        title: const Text('Bloquear usuario',
+            style: TextStyle(color: Colors.white)),
+        content: const Text(
+          'Esta persona no podrá verte ni escanearte.',
+          style: TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => nav.pop(false),
+            child: const Text('Cancelar',
+                style: TextStyle(color: Colors.white54)),
+          ),
+          TextButton(
+            onPressed: () => nav.pop(true),
+            child: const Text('Bloquear',
+                style: TextStyle(color: Color(0xFFFF3B30))),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true && mounted) {
+      await sl<BlockUser>()
+          .call(targetUid: targetUid, linkId: widget.linkId);
+      if (mounted) nav.pop();
+    }
+  }
+
+  Future<void> _showReportDialog(
+      BuildContext context, String targetUid) async {
+    final nav = Navigator.of(context);
+    String? selectedReason;
+    final reasons = ['Acoso', 'Contenido inapropiado', 'Spam', 'Otro'];
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setState) => AlertDialog(
+          backgroundColor: const Color(0xFF0D0020),
+          title: const Text('Reportar usuario',
+              style: TextStyle(color: Colors.white)),
+          content: RadioGroup<String>(
+            groupValue: selectedReason,
+            onChanged: (v) => setState(() => selectedReason = v),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: reasons
+                  .map((r) => InkWell(
+                        onTap: () => setState(() => selectedReason = r),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 4, vertical: 2),
+                          child: Row(
+                            children: [
+                              Radio<String>(
+                                value: r,
+                                activeColor: const Color(0xFFB300FF),
+                              ),
+                              Text(r,
+                                  style: const TextStyle(
+                                      color: Colors.white70)),
+                            ],
+                          ),
+                        ),
+                      ))
+                  .toList(),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: const Text('Cancelar',
+                  style: TextStyle(color: Colors.white54)),
+            ),
+            TextButton(
+              onPressed: selectedReason == null
+                  ? null
+                  : () => Navigator.of(ctx).pop(true),
+              child: const Text('Reportar',
+                  style: TextStyle(color: Color(0xFFFF3B30))),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (confirmed == true && selectedReason != null && mounted) {
+      await sl<ReportUser>().call(
+          targetUid: targetUid,
+          reason: selectedReason!,
+          linkId: widget.linkId);
+      if (mounted) nav.pop();
+    }
   }
 
   @override
@@ -113,6 +247,7 @@ class _ChatPageState extends State<ChatPage> {
 
   Widget _buildHeader(BuildContext context, ChatState state) {
     final expiresAt = widget.link.expiresAt;
+    final otherUid = _otherUid;
     return SafeArea(
       child: Container(
         height: 64,
@@ -154,8 +289,34 @@ class _ChatPageState extends State<ChatPage> {
                 overflow: TextOverflow.ellipsis,
               ),
             ),
-            if (expiresAt != null)
-              CountdownWidget(expiresAt: expiresAt),
+            if (expiresAt != null) CountdownWidget(expiresAt: expiresAt),
+            if (!state.isLinkExpired)
+              PopupMenuButton<String>(
+                icon: const Icon(Icons.more_vert, color: Colors.white38),
+                color: const Color(0xFF0D0020),
+                onSelected: (value) {
+                  if (value == 'revoke') _confirmRevoke(context);
+                  if (value == 'block') _confirmBlock(context, otherUid);
+                  if (value == 'report') _showReportDialog(context, otherUid);
+                },
+                itemBuilder: (_) => const [
+                  PopupMenuItem(
+                    value: 'revoke',
+                    child: Text('Revocar vínculo',
+                        style: TextStyle(color: Colors.white70)),
+                  ),
+                  PopupMenuItem(
+                    value: 'block',
+                    child: Text('Bloquear',
+                        style: TextStyle(color: Colors.white70)),
+                  ),
+                  PopupMenuItem(
+                    value: 'report',
+                    child: Text('Reportar',
+                        style: TextStyle(color: Color(0xFFFF3B30))),
+                  ),
+                ],
+              ),
           ],
         ),
       ),
