@@ -8,4 +8,4 @@ export { generateQrToken, validateQrToken } from './qr/generateQrToken';
 
 // Link
 export { initiateLink } from './link/initiateLink';
-// export { confirmLink } from './link/confirmLink'; // will exist after Task 9
+export { confirmLink } from './link/confirmLink';
