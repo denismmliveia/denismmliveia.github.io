@@ -100,10 +100,10 @@ class _ChatPageState extends State<ChatPage> {
                   ),
                 ],
               ),
-              if (state.isLinkExpired) _buildExpiryOverlay(context),
               if (state.actionStatus == ChatActionStatus.viewingPhoto &&
                   state.viewingPhotoUrl != null)
                 _buildPhotoViewer(context, state.viewingPhotoUrl!),
+              if (state.isLinkExpired) _buildExpiryOverlay(context),
             ],
           );
         },
