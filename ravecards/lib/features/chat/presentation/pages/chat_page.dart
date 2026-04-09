@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_windowmanager/flutter_windowmanager.dart';
+import 'package:flutter_windowmanager_plus/flutter_windowmanager_plus.dart';
 import '../../../link/domain/entities/link_entity.dart';
 import '../../../link/presentation/widgets/countdown_widget.dart';
 import '../../domain/entities/message_entity.dart';
@@ -31,13 +31,13 @@ class _ChatPageState extends State<ChatPage> {
   @override
   void initState() {
     super.initState();
-    FlutterWindowManager.addFlags(FlutterWindowManager.FLAG_SECURE);
+    FlutterWindowManagerPlus.addFlags(FlutterWindowManagerPlus.FLAG_SECURE);
     context.read<ChatCubit>().init(widget.linkId, otherUid: _otherUid);
   }
 
   @override
   void dispose() {
-    FlutterWindowManager.clearFlags(FlutterWindowManager.FLAG_SECURE);
+    FlutterWindowManagerPlus.clearFlags(FlutterWindowManagerPlus.FLAG_SECURE);
     _scrollController.dispose();
     super.dispose();
   }

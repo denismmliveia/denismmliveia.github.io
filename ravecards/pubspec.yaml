@@ -40,7 +40,7 @@ dependencies:
   cached_network_image: ^3.4.1
 
   # Chat & Network
-  flutter_windowmanager: ^0.2.0
+  flutter_windowmanager_plus: ^1.0.1
   http: ^1.2.0
 
   # Functional
