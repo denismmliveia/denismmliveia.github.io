@@ -1,7 +1,9 @@
 // lib/features/scan/presentation/cubit/scan_cubit.dart
 import 'dart:async';
+import 'package:dartz/dartz.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:injectable/injectable.dart';
+import '../../../../core/error/failures.dart';
 import '../../../../features/card/domain/entities/card_entity.dart';
 import '../../../../features/link/domain/entities/link_entity.dart';
 import '../../../../features/link/domain/usecases/watch_link.dart';
@@ -19,7 +21,7 @@ class ScanCubit extends Cubit<ScanState> {
   final ConfirmLink _confirmLink;
   final WatchLink _watchLink;
 
-  StreamSubscription<dynamic>? _linkSubscription;
+  StreamSubscription<Either<Failure, LinkEntity>>? _linkSubscription;
   Timer? _countdownTimer;
 
   ScanCubit({
@@ -94,6 +96,7 @@ class ScanCubit extends Cubit<ScanState> {
 
   /// Called by the Firestore stream subscription and directly in tests.
   void onLinkStatusChanged(LinkEntity link) {
+    if (isClosed) return;
     final currentState = state;
     if (currentState is! ScanPending) return;
     if (link.isLinked) {
@@ -109,6 +112,7 @@ class ScanCubit extends Cubit<ScanState> {
 
   /// Called by the countdown timer and directly in tests.
   void onCountdownTick() {
+    if (isClosed) return;
     final currentState = state;
     if (currentState is! ScanPending) return;
 
