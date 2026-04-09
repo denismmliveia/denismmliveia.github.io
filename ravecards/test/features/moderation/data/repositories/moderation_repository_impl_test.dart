@@ -6,20 +6,17 @@ import 'package:ravecards/features/moderation/data/repositories/moderation_repos
 
 class MockFirebaseFunctions extends Mock implements FirebaseFunctions {}
 class MockHttpsCallable extends Mock implements HttpsCallable {}
-class MockHttpsCallableResult extends Mock implements HttpsCallableResult {}
+class _FakeResult extends Fake implements HttpsCallableResult {}
 
 void main() {
   late MockFirebaseFunctions functions;
   late MockHttpsCallable callable;
-  late MockHttpsCallableResult callableResult;
 
   setUp(() {
     functions = MockFirebaseFunctions();
     callable = MockHttpsCallable();
-    callableResult = MockHttpsCallableResult();
     when(() => functions.httpsCallable(any())).thenReturn(callable);
-    when(() => callable.call(any())).thenAnswer((_) async => callableResult);
-    when(() => callableResult.data).thenReturn({'ok': true});
+    when(() => callable.call(any())).thenAnswer((_) async => _FakeResult());
   });
 
   group('ModerationRepositoryImpl', () {
@@ -47,6 +44,24 @@ void main() {
       final result = await repo.revokeLink('link-1');
       result.fold(
         (f) => expect(f.message, contains('network error')),
+        (_) => fail('expected Left'),
+      );
+    });
+
+    test('blockUser returns Left(ModerationFailure) on exception', () async {
+      when(() => callable.call(any())).thenThrow(Exception('block failed'));
+      final result = await repo.blockUser(targetUid: 'uid-b');
+      result.fold(
+        (f) => expect(f.message, contains('block failed')),
+        (_) => fail('expected Left'),
+      );
+    });
+
+    test('reportUser returns Left(ModerationFailure) on exception', () async {
+      when(() => callable.call(any())).thenThrow(Exception('report failed'));
+      final result = await repo.reportUser(targetUid: 'uid-b', reason: 'spam');
+      result.fold(
+        (f) => expect(f.message, contains('report failed')),
         (_) => fail('expected Left'),
       );
     });
