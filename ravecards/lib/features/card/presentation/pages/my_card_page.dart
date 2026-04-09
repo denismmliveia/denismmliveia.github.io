@@ -97,7 +97,7 @@ class _AccountMenu extends StatelessWidget {
           case 'delete':
             final confirm = await showDialog<bool>(
               context: context,
-              builder: (_) => AlertDialog(
+              builder: (dialogContext) => AlertDialog(
                 backgroundColor: AppColors.surface,
                 title: const Text('Borrar tarjeta'),
                 content: const Text(
@@ -105,11 +105,11 @@ class _AccountMenu extends StatelessWidget {
                 ),
                 actions: [
                   TextButton(
-                    onPressed: () => Navigator.pop(context, false),
+                    onPressed: () => Navigator.pop(dialogContext, false),
                     child: const Text('Cancelar'),
                   ),
                   TextButton(
-                    onPressed: () => Navigator.pop(context, true),
+                    onPressed: () => Navigator.pop(dialogContext, true),
                     child: const Text('Borrar',
                         style: TextStyle(color: AppColors.error)),
                   ),

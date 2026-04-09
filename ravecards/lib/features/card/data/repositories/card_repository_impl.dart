@@ -99,7 +99,6 @@ class CardRepositoryImpl implements CardRepository {
   @override
   Future<Either<CardFailure, Unit>> deleteCard(String uid) async {
     try {
-      // Borrar campos de tarjeta, mantener el documento de usuario
       await _firestore.collection('users').doc(uid).update({
         'displayName': FieldValue.delete(),
         'photoUrl': FieldValue.delete(),
@@ -111,10 +110,9 @@ class CardRepositoryImpl implements CardRepository {
         'activeQrToken': FieldValue.delete(),
         'qrTokenExpiresAt': FieldValue.delete(),
       });
-      // Borrar foto de perfil
       try {
         await _storage.ref('profiles/$uid/avatar.jpg').delete();
-      } catch (_) {} // Ignorar si no existe
+      } catch (_) {}
       return const Right(unit);
     } catch (e) {
       return Left(CardFailure(e.toString()));
