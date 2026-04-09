@@ -55,12 +55,8 @@ class CardCubit extends Cubit<CardState> {
       },
       (card) {
         emit(CardLoaded(card));
-        if (card.activeQrToken == null) {
-          // Primera carga sin token: generar QR inmediatamente
-          refreshQr(uid);
-        } else {
-          _scheduleQrRefresh(uid);
-        }
+        // Siempre refrescar QR al cargar — el token en Firestore puede estar expirado
+        refreshQr(uid);
       },
     );
   }

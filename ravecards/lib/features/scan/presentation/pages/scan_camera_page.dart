@@ -37,13 +37,20 @@ class _ScanCameraPageState extends State<ScanCameraPage> {
         if (state is ScanPreview) {
           context.go('/scan/preview');
         } else if (state is ScanError) {
-          _scanned = false; // allow retry
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(state.message),
-              backgroundColor: AppColors.error,
-            ),
-          );
+          _controller.stop();
+          ScaffoldMessenger.of(context)
+              .showSnackBar(SnackBar(
+                content: Text(state.message),
+                backgroundColor: AppColors.error,
+                duration: const Duration(seconds: 3),
+              ))
+              .closed
+              .then((_) {
+            if (mounted) {
+              _scanned = false;
+              _controller.start();
+            }
+          });
         }
       },
       child: Scaffold(

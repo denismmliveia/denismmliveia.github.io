@@ -65,7 +65,6 @@ export const validateQrTokenHandler = async (
       .get();
 
     if (blockDoc.exists) {
-      // Respuesta neutra — el bloqueador no sabe que está bloqueado
       return { valid: false };
     }
 
