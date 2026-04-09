@@ -147,6 +147,24 @@ void main() {
         const ChatState(actionStatus: ChatActionStatus.idle),
       ],
     );
+
+    blocTest<ChatCubit, ChatState>(
+      'emits error state on failure',
+      build: () {
+        when(() => sendPhoto('link-1', any()))
+            .thenAnswer((_) async => Left(const ChatFailure('upload error')));
+        return _buildCubit(
+          watchMessages: watchMessages, sendText: sendText,
+          sendPhoto: sendPhoto, requestView: requestView,
+          getProfile: getProfile, watchLink: watchLink, auth: auth,
+        );
+      },
+      act: (c) => c.sendPhoto('link-1', Uint8List.fromList([1, 2])),
+      expect: () => [
+        const ChatState(actionStatus: ChatActionStatus.uploadingPhoto),
+        const ChatState(actionStatus: ChatActionStatus.error, errorMessage: 'upload error'),
+      ],
+    );
   });
 
   group('requestPhotoView', () {

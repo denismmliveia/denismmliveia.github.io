@@ -65,7 +65,7 @@ class ChatCubit extends Cubit<ChatState> {
       result.fold(
         (_) {},
         (link) {
-          if (!link.isLinked) {
+          if (link.isExpired || link.isRevoked) {
             emit(state.copyWith(isLinkExpired: true));
           }
         },
