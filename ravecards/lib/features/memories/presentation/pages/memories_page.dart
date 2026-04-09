@@ -58,7 +58,6 @@ class _MemoriesView extends StatelessWidget {
               itemCount: memories.length,
               itemBuilder: (_, i) => MemoryCardWidget(memory: memories[i]),
             ),
-          _ => const SizedBox.shrink(),
         },
       ),
     );

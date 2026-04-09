@@ -15,6 +15,7 @@ class MemoriesCubit extends Cubit<MemoriesState> {
         super(const MemoriesInitial());
 
   void watch() {
+    _sub?.cancel();
     emit(const MemoriesLoading());
     _sub = _watchMemories().listen(
       (result) => result.fold(

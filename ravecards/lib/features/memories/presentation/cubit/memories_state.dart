@@ -2,7 +2,7 @@
 import 'package:equatable/equatable.dart';
 import '../../domain/entities/memory_entity.dart';
 
-abstract class MemoriesState extends Equatable {
+sealed class MemoriesState extends Equatable {
   const MemoriesState();
 }
 
