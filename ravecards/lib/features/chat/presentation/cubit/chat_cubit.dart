@@ -45,6 +45,7 @@ class ChatCubit extends Cubit<ChatState> {
 
   void init(String linkId, {required String otherUid}) {
     _getOtherUserProfile(otherUid).then((result) {
+      if (isClosed) return;
       result.fold(
         (_) {},
         (profile) => emit(state.copyWith(
