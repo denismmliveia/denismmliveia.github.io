@@ -75,11 +75,52 @@ class _MyCardView extends StatelessWidget {
                   isQrRefreshing: isRefreshing,
                   onScanTap: () => context.push('/scan'),
                 ),
+                const SizedBox(height: 12),
+                const _AccountMenu(),
               ],
             ),
           ),
         );
       },
+    );
+  }
+}
+
+class _AccountMenu extends StatelessWidget {
+  const _AccountMenu();
+
+  @override
+  Widget build(BuildContext context) {
+    return PopupMenuButton<String>(
+      onSelected: (_) async {
+        await FirebaseAuth.instance.signOut();
+        if (context.mounted) context.go('/login');
+      },
+      color: AppColors.surface,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      itemBuilder: (_) => [
+        const PopupMenuItem(
+          value: 'logout',
+          child: Row(
+            children: [
+              Icon(Icons.logout, size: 16, color: AppColors.textSecondary),
+              SizedBox(width: 8),
+              Text(
+                'Cerrar sesión',
+                style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
+              ),
+            ],
+          ),
+        ),
+      ],
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.more_horiz,
+              size: 16,
+              color: AppColors.white.withValues(alpha: 0.2)),
+        ],
+      ),
     );
   }
 }
