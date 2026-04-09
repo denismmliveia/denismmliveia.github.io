@@ -41,6 +41,7 @@ dependencies:
 
   # Chat & Network
   flutter_windowmanager_plus: ^1.0.1
+  firebase_messaging: ^15.2.0
   http: ^1.2.0
 
   # Functional
