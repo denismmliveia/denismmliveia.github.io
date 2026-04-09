@@ -76,5 +76,5 @@ export const validateQrTokenHandler = async (
 };
 
 // Exports como Cloud Functions
-export const generateQrToken = onCall(generateQrTokenHandler);
-export const validateQrToken = onCall(validateQrTokenHandler);
+export const generateQrToken = onCall({ secrets: ['QR_SECRET'] }, generateQrTokenHandler);
+export const validateQrToken = onCall({ secrets: ['QR_SECRET'] }, validateQrTokenHandler);
