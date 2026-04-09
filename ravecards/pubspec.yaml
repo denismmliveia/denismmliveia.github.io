@@ -1,0 +1,64 @@
+name: ravecards
+description: RaveCards - Ephemeral social app for parties
+publish_to: none
+version: 0.1.0+1
+
+environment:
+  sdk: '>=3.3.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Firebase
+  firebase_core: ^3.6.0
+  firebase_auth: ^5.3.0
+  cloud_firestore: ^5.5.0
+  firebase_storage: ^12.4.0
+  cloud_functions: ^5.2.0
+
+  # State management
+  flutter_bloc: ^8.1.6
+  equatable: ^2.0.5
+
+  # DI
+  get_it: ^8.0.2
+  injectable: ^2.5.0
+
+  # Navigation
+  go_router: ^14.6.1
+
+  # Auth
+  google_sign_in: ^6.2.2
+
+  # QR & Scan
+  qr_flutter: ^4.1.0
+  mobile_scanner: ^5.2.3
+
+  # Image
+  image_picker: ^1.1.2
+  cached_network_image: ^3.4.1
+
+  # Chat & Network
+  flutter_windowmanager_plus: ^1.0.1
+  firebase_messaging: ^15.2.0
+  http: ^1.2.0
+
+  # Functional
+  dartz: ^0.10.1
+
+  # Utils
+  uuid: ^4.5.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+  mockito: ^5.4.4
+  mocktail: ^0.3.0
+  bloc_test: ^9.1.7
+  build_runner: ^2.4.13
+  injectable_generator: ^2.5.0
+
+flutter:
+  uses-material-design: true
