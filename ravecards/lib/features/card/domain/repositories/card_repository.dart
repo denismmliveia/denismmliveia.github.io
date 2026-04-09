@@ -16,5 +16,6 @@ abstract class CardRepository {
     required String favoriteTheme,
   });
   Future<Either<CardFailure, String>> refreshQrToken(String uid);
+  Future<Either<CardFailure, Unit>> deleteCard(String uid);
   Stream<CardEntity?> watchCard(String uid);
 }

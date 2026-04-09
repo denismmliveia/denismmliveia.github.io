@@ -95,6 +95,31 @@ class CardRepositoryImpl implements CardRepository {
   }
 
   @override
+  Future<Either<CardFailure, Unit>> deleteCard(String uid) async {
+    try {
+      // Borrar campos de tarjeta, mantener el documento de usuario
+      await _firestore.collection('users').doc(uid).update({
+        'displayName': FieldValue.delete(),
+        'photoUrl': FieldValue.delete(),
+        'genre': FieldValue.delete(),
+        'orientation': FieldValue.delete(),
+        'relationshipStatus': FieldValue.delete(),
+        'favoriteTheme': FieldValue.delete(),
+        'hasCard': false,
+        'activeQrToken': FieldValue.delete(),
+        'qrTokenExpiresAt': FieldValue.delete(),
+      });
+      // Borrar foto de perfil
+      try {
+        await _storage.ref('profiles/$uid/avatar.jpg').delete();
+      } catch (_) {} // Ignorar si no existe
+      return const Right(unit);
+    } catch (e) {
+      return Left(CardFailure(e.toString()));
+    }
+  }
+
+  @override
   Stream<CardEntity?> watchCard(String uid) {
     return _firestore.collection('users').doc(uid).snapshots().map((snap) {
       if (!snap.exists) return null;

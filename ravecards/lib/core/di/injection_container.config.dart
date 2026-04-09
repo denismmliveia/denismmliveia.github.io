@@ -222,6 +222,7 @@ extension GetItInjectableX on _i174.GetIt {
           getCard: gh<_i642.GetCard>(),
           createCard: gh<_i933.CreateCard>(),
           refreshQrToken: gh<_i132.RefreshQrToken>(),
+          repository: gh<_i816.CardRepository>(),
         ));
     return this;
   }

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:injectable/injectable.dart';
 
+import '../../domain/repositories/card_repository.dart';
 import '../../domain/usecases/create_card.dart';
 import '../../domain/usecases/get_card.dart';
 import '../../domain/usecases/refresh_qr_token.dart';
@@ -15,15 +16,18 @@ class CardCubit extends Cubit<CardState> {
   final GetCard _getCard;
   final CreateCard _createCard;
   final RefreshQrToken _refreshQrToken;
+  final CardRepository _repository;
   Timer? _qrRefreshTimer;
 
   CardCubit({
     required GetCard getCard,
     required CreateCard createCard,
     required RefreshQrToken refreshQrToken,
+    required CardRepository repository,
   })  : _getCard = getCard,
         _createCard = createCard,
         _refreshQrToken = refreshQrToken,
+        _repository = repository,
         super(CardInitial());
 
   Future<void> createCard(CreateCardParams params) async {
@@ -76,6 +80,16 @@ class CardCubit extends Cubit<CardState> {
         emit(CardLoaded(updatedCard));
         _scheduleQrRefresh(uid);
       },
+    );
+  }
+
+  Future<void> deleteCard(String uid) async {
+    _qrRefreshTimer?.cancel();
+    emit(CardLoading());
+    final result = await _repository.deleteCard(uid);
+    result.fold(
+      (failure) => emit(CardError(failure.message)),
+      (_) => emit(CardNotFound()),
     );
   }
 

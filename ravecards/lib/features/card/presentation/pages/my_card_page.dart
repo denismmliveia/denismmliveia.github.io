@@ -92,13 +92,55 @@ class _AccountMenu extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return PopupMenuButton<String>(
-      onSelected: (_) async {
-        await FirebaseAuth.instance.signOut();
-        if (context.mounted) context.go('/login');
+      onSelected: (value) async {
+        switch (value) {
+          case 'delete':
+            final confirm = await showDialog<bool>(
+              context: context,
+              builder: (_) => AlertDialog(
+                backgroundColor: AppColors.surface,
+                title: const Text('Borrar tarjeta'),
+                content: const Text(
+                  '¿Seguro que quieres borrar tu RaveCard? Podrás crear una nueva después.',
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context, false),
+                    child: const Text('Cancelar'),
+                  ),
+                  TextButton(
+                    onPressed: () => Navigator.pop(context, true),
+                    child: const Text('Borrar',
+                        style: TextStyle(color: AppColors.error)),
+                  ),
+                ],
+              ),
+            );
+            if (confirm == true && context.mounted) {
+              final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+              context.read<CardCubit>().deleteCard(uid);
+            }
+          case 'logout':
+            await FirebaseAuth.instance.signOut();
+            if (context.mounted) context.go('/login');
+        }
       },
       color: AppColors.surface,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       itemBuilder: (_) => [
+        const PopupMenuItem(
+          value: 'delete',
+          child: Row(
+            children: [
+              Icon(Icons.delete_outline, size: 16, color: AppColors.textSecondary),
+              SizedBox(width: 8),
+              Text(
+                'Borrar tarjeta',
+                style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
+              ),
+            ],
+          ),
+        ),
         const PopupMenuItem(
           value: 'logout',
           child: Row(
