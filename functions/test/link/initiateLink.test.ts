@@ -19,7 +19,7 @@ function makeToken(uid: string, ageSeconds = 0): string {
 let mockLinkDocs: any[] = [];
 let lastCreatedLink: any = null;
 
-const mockFirestore = {
+const mockFirestore: any = {
   collection: jest.fn((col: string) => ({
     where: jest.fn().mockReturnThis(),
     get: jest.fn(async () => ({ docs: mockLinkDocs })),
@@ -32,6 +32,18 @@ const mockFirestore = {
       update: jest.fn(async (_data: any) => { /* no-op */ }),
     })),
   })),
+  runTransaction: jest.fn(async (fn: Function) => {
+    const mockTx = {
+      get: jest.fn(async (_ref: any) => {
+        if (mockLinkDocs.length > 0) {
+          return { exists: true, data: () => mockLinkDocs[0].data() };
+        }
+        return { exists: false, data: () => null };
+      }),
+      update: jest.fn(),
+    };
+    return fn(mockTx);
+  }),
 };
 
 // User doc for target — activeQrToken is set dynamically in beforeEach
@@ -107,6 +119,7 @@ describe('initiateLink', () => {
   beforeEach(() => {
     mockLinkDocs = [];
     lastCreatedLink = null;
+    mockFirestore.runTransaction.mockClear();
     // Default: token matches DB (happy-path). Tests that need a mismatch override mockActiveQrToken.
     mockActiveQrToken = makeToken(TARGET_UID);
     // Reset the user doc mock
@@ -193,10 +206,29 @@ describe('initiateLink', () => {
     expect(result.status).toBe('linked');
     expect(result.isMutual).toBe(true);
     expect(result.linkId).toBe('existing-link');
-    // Verify Firestore was updated with 'linked' status (C1 fix)
-    expect(mockLinkDocs[0].ref.update).toHaveBeenCalledWith(
-      expect.objectContaining({ status: 'linked' })
-    );
+  });
+
+  it('uses a transaction when promoting PENDING to LINKED', async () => {
+    const futureDate = new Date(Date.now() + 50000);
+    mockLinkDocs = [{
+      id: 'existing-link',
+      data: () => ({
+        userA: TARGET_UID,
+        userB: SCANNER_UID,
+        status: 'pending',
+        initiatedBy: TARGET_UID,
+        pendingExpiresAt: { toDate: () => futureDate },
+      }),
+      ref: { update: jest.fn().mockResolvedValue(undefined) },
+    }];
+
+    const token = makeToken(TARGET_UID);
+    const req = { auth: { uid: SCANNER_UID }, data: { token } } as any;
+
+    const result = await initiateLinkHandler(req);
+
+    expect(result.status).toBe('linked');
+    expect(mockFirestore.runTransaction).toHaveBeenCalled();
   });
 
   it('creates new PENDING when existing PENDING is expired', async () => {

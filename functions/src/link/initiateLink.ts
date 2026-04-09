@@ -121,15 +121,34 @@ export const initiateLinkHandler = async (
       // Within window
       if (data.initiatedBy === targetUid) {
         // TARGET initiated first → this scan completes the mutual exchange
-        // Persist the 'linked' status to Firestore (C1 fix — without this the doc stays 'pending' forever)
-        await doc.ref.update({
-          status: 'linked',
-          linkedAt: admin.firestore.FieldValue.serverTimestamp(),
-        });
-        // NOTE (C2): No transaction here — concurrent duplicate scans are a known V1 limitation.
-        // TODO: wrap in transaction to prevent race on concurrent scans in a future iteration.
+        // Use a transaction to prevent race conditions on concurrent scans
+        const LINK_DURATION_HOURS = 12;
+        const txResult = await db.runTransaction(async (tx) => {
+          // Re-read the link doc inside the transaction to check it hasn't changed
+          const freshDoc = await tx.get(doc.ref);
+          const freshData = freshDoc.data();
+          if (!freshData || freshData.status !== 'pending') {
+            // Already promoted or expired by a concurrent scan — abort
+            return null;
+          }
 
-        // Notify the initiator (targetUid) that their scan was reciprocated
+          const expiresAt = new Date(now.getTime() + LINK_DURATION_HOURS * 60 * 60 * 1000);
+          tx.update(doc.ref, {
+            status: 'linked',
+            linkedAt: admin.firestore.FieldValue.serverTimestamp(),
+            expiresAt: admin.firestore.Timestamp.fromDate(expiresAt),
+            duration: LINK_DURATION_HOURS,
+          });
+
+          return { status: 'linked' as const, linkId: doc.id, isMutual: true };
+        });
+
+        if (txResult === null) {
+          // Transaction found doc already changed — treat as no-op
+          return { status: 'pending', linkId: doc.id, isMutual: false };
+        }
+
+        // FCM notification (fire-and-forget, outside transaction)
         try {
           const initiatorDoc = await db.collection('users').doc(targetUid).get();
           const fcmToken: string | undefined = initiatorDoc.data()?.fcmToken;
@@ -145,11 +164,10 @@ export const initiateLinkHandler = async (
             });
           }
         } catch (fcmErr) {
-          // FCM failure is non-fatal — the link is already created
           console.error('FCM notification failed:', fcmErr);
         }
 
-        return { status: 'linked', linkId: doc.id, isMutual: true };
+        return txResult;
       } else {
         // SCANNER already initiated → re-scan within window, no-op
         return { status: 'pending', linkId: doc.id, isMutual: false };
