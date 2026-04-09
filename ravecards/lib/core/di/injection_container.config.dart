@@ -69,6 +69,24 @@ import 'package:ravecards/features/link/domain/usecases/watch_my_links.dart'
     as _i843;
 import 'package:ravecards/features/link/presentation/cubit/links_cubit.dart'
     as _i391;
+import 'package:ravecards/features/memories/data/repositories/memory_repository_impl.dart'
+    as _i1;
+import 'package:ravecards/features/memories/domain/repositories/memory_repository.dart'
+    as _i61;
+import 'package:ravecards/features/memories/domain/usecases/watch_memories.dart'
+    as _i297;
+import 'package:ravecards/features/memories/presentation/cubit/memories_cubit.dart'
+    as _i740;
+import 'package:ravecards/features/moderation/data/repositories/moderation_repository_impl.dart'
+    as _i501;
+import 'package:ravecards/features/moderation/domain/repositories/moderation_repository.dart'
+    as _i138;
+import 'package:ravecards/features/moderation/domain/usecases/block_user.dart'
+    as _i721;
+import 'package:ravecards/features/moderation/domain/usecases/report_user.dart'
+    as _i873;
+import 'package:ravecards/features/moderation/domain/usecases/revoke_link.dart'
+    as _i121;
 import 'package:ravecards/features/scan/data/repositories/scan_repository_impl.dart'
     as _i679;
 import 'package:ravecards/features/scan/domain/repositories/scan_repository.dart'
@@ -102,6 +120,13 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i809.FirebaseFunctions>(() => firebaseModule.functions);
     gh.lazySingleton<_i116.GoogleSignIn>(() => firebaseModule.googleSignIn);
     gh.lazySingleton<_i519.Client>(() => firebaseModule.httpClient);
+    gh.lazySingleton<_i138.ModerationRepository>(() =>
+        _i501.ModerationRepositoryImpl(
+            functions: gh<_i809.FirebaseFunctions>()));
+    gh.lazySingleton<_i61.MemoryRepository>(() => _i1.MemoryRepositoryImpl(
+          firestore: gh<_i974.FirebaseFirestore>(),
+          auth: gh<_i59.FirebaseAuth>(),
+        ));
     gh.lazySingleton<_i190.ChatRepository>(() => _i698.ChatRepositoryImpl(
           firestore: gh<_i974.FirebaseFirestore>(),
           auth: gh<_i59.FirebaseAuth>(),
@@ -123,6 +148,12 @@ extension GetItInjectableX on _i174.GetIt {
           firestore: gh<_i974.FirebaseFirestore>(),
           googleSignIn: gh<_i116.GoogleSignIn>(),
         ));
+    gh.factory<_i721.BlockUser>(
+        () => _i721.BlockUser(gh<_i138.ModerationRepository>()));
+    gh.factory<_i873.ReportUser>(
+        () => _i873.ReportUser(gh<_i138.ModerationRepository>()));
+    gh.factory<_i121.RevokeLink>(
+        () => _i121.RevokeLink(gh<_i138.ModerationRepository>()));
     gh.lazySingleton<_i816.CardRepository>(() => _i386.CardRepositoryImpl(
           firestore: gh<_i974.FirebaseFirestore>(),
           storage: gh<_i457.FirebaseStorage>(),
@@ -155,6 +186,8 @@ extension GetItInjectableX on _i174.GetIt {
           watchLink: gh<_i502.WatchLink>(),
           auth: gh<_i59.FirebaseAuth>(),
         ));
+    gh.factory<_i297.WatchMemories>(
+        () => _i297.WatchMemories(gh<_i61.MemoryRepository>()));
     gh.factory<_i397.ConfirmLink>(
         () => _i397.ConfirmLink(gh<_i476.ScanRepository>()));
     gh.factory<_i1030.InitiateLink>(
@@ -176,6 +209,8 @@ extension GetItInjectableX on _i174.GetIt {
           signInWithGoogle: gh<_i958.SignInWithGoogle>(),
           signOut: gh<_i798.SignOut>(),
         ));
+    gh.factory<_i740.MemoriesCubit>(
+        () => _i740.MemoriesCubit(watchMemories: gh<_i297.WatchMemories>()));
     gh.factory<_i707.ScanCubit>(() => _i707.ScanCubit(
           validateQrToken: gh<_i248.ValidateQrToken>(),
           previewCard: gh<_i718.PreviewCard>(),

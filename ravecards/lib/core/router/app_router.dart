@@ -12,7 +12,7 @@ import '../../features/chat/presentation/cubit/chat_cubit.dart';
 import '../../features/chat/presentation/pages/chat_page.dart';
 import '../../features/link/domain/entities/link_entity.dart';
 import '../../features/link/presentation/pages/links_page.dart';
-import '../../features/memories/presentation/pages/memories_stub_page.dart';
+import '../../features/memories/presentation/pages/memories_page.dart';
 import '../../features/scan/presentation/cubit/scan_cubit.dart';
 import '../../features/scan/presentation/pages/scan_camera_page.dart';
 import '../../features/scan/presentation/pages/scan_linked_page.dart';
@@ -97,7 +97,7 @@ class AppRouter {
           GoRoute(path: '/links', builder: (_, __) => const LinksPage()),
           GoRoute(
               path: '/memories',
-              builder: (_, __) => const MemoriesStubPage()),
+              builder: (_, __) => const MemoriesPage()),
         ],
       ),
     ],
