@@ -38,6 +38,6 @@ class FcmService {
     await FirebaseFirestore.instance
         .collection('users')
         .doc(uid)
-        .update({'fcmToken': token});
+        .set({'fcmToken': token}, SetOptions(merge: true));
   }
 }
