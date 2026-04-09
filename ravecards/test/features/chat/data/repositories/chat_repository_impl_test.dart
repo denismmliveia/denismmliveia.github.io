@@ -26,8 +26,14 @@ class MockDocumentSnapshot extends Mock
 class MockQuerySnapshot extends Mock
     implements QuerySnapshot<Map<String, dynamic>> {}
 class MockQuery extends Mock implements Query<Map<String, dynamic>> {}
+class MockHttpsCallable extends Mock implements HttpsCallable {}
+class MockHttpsCallableResult extends Mock implements HttpsCallableResult {}
 
 void main() {
+  setUpAll(() {
+    registerFallbackValue(Uri());
+  });
+
   late ChatRepositoryImpl repo;
   late MockFirebaseFirestore firestore;
   late MockFirebaseAuth auth;
@@ -186,6 +192,100 @@ void main() {
       final result = await future;
       expect(result.isLeft(), isTrue);
       await controller.close();
+    });
+  });
+
+  group('sendPhoto', () {
+    late MockHttpsCallable callable;
+    late MockHttpsCallableResult callableResult;
+    late MockDocumentReference msgDocRef;
+
+    setUp(() {
+      callable = MockHttpsCallable();
+      callableResult = MockHttpsCallableResult();
+      msgDocRef = MockDocumentReference();
+
+      when(() => functions.httpsCallable('requestPhotoUploadUrl'))
+          .thenReturn(callable);
+      when(() => callable.call(any())).thenAnswer((_) async => callableResult);
+      when(() => callableResult.data).thenReturn({
+        'uploadUrl': 'https://storage.example.com/upload?sig=abc',
+        'photoRef': 'chat/link-1/msg-x/uid-alice_1234.jpg',
+      });
+      when(() => messagesCollection.doc(any())).thenReturn(msgDocRef);
+      when(() => msgDocRef.id).thenReturn('msg-x');
+      when(() => msgDocRef.set(any())).thenAnswer((_) async {});
+    });
+
+    test('calls CF, PUTs image, writes message doc on success', () async {
+      when(() => httpClient.put(any(), headers: any(named: 'headers'), body: any(named: 'body')))
+          .thenAnswer((_) async => http.Response('', 200));
+
+      final result = await repo.sendPhoto('link-1', Uint8List.fromList([1, 2, 3]));
+
+      expect(result, equals(const Right(unit)));
+      verify(() => functions.httpsCallable('requestPhotoUploadUrl')).called(1);
+      verify(() => httpClient.put(
+            Uri.parse('https://storage.example.com/upload?sig=abc'),
+            headers: {'Content-Type': 'image/jpeg'},
+            body: Uint8List.fromList([1, 2, 3]),
+          )).called(1);
+      final captured = verify(() => msgDocRef.set(captureAny())).captured.single
+          as Map<String, dynamic>;
+      expect(captured['type'], 'photo_once');
+      expect(captured['photoRef'], 'chat/link-1/msg-x/uid-alice_1234.jpg');
+      expect(captured['viewedBy'], isEmpty);
+    });
+
+    test('returns ChatFailure when PUT returns non-200', () async {
+      when(() => httpClient.put(any(), headers: any(named: 'headers'), body: any(named: 'body')))
+          .thenAnswer((_) async => http.Response('error', 403));
+
+      final result = await repo.sendPhoto('link-1', Uint8List.fromList([1]));
+
+      expect(result.isLeft(), isTrue);
+    });
+
+    test('returns ChatFailure when CF throws FirebaseFunctionsException', () async {
+      when(() => callable.call(any())).thenThrow(
+        FirebaseFunctionsException(message: 'permission-denied', code: 'permission-denied'),
+      );
+
+      final result = await repo.sendPhoto('link-1', Uint8List.fromList([1]));
+
+      expect(result.isLeft(), isTrue);
+    });
+  });
+
+  group('requestPhotoView', () {
+    late MockHttpsCallable callable;
+    late MockHttpsCallableResult callableResult;
+
+    setUp(() {
+      callable = MockHttpsCallable();
+      callableResult = MockHttpsCallableResult();
+      when(() => functions.httpsCallable('getPhotoViewUrl')).thenReturn(callable);
+      when(() => callable.call(any())).thenAnswer((_) async => callableResult);
+    });
+
+    test('returns signed URL on success', () async {
+      when(() => callableResult.data).thenReturn({
+        'viewUrl': 'https://storage.example.com/photo?sig=xyz',
+      });
+
+      final result = await repo.requestPhotoView('link-1', 'msg-1');
+
+      expect(result, equals(const Right('https://storage.example.com/photo?sig=xyz')));
+    });
+
+    test('returns ChatFailure on FirebaseFunctionsException', () async {
+      when(() => callable.call(any())).thenThrow(
+        FirebaseFunctionsException(message: 'already-viewed', code: 'already-exists'),
+      );
+
+      final result = await repo.requestPhotoView('link-1', 'msg-1');
+
+      expect(result.isLeft(), isTrue);
     });
   });
 }

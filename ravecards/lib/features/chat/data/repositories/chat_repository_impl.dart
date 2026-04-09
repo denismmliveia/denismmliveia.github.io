@@ -82,12 +82,56 @@ class ChatRepositoryImpl implements ChatRepository {
 
   @override
   Future<Either<Failure, Unit>> sendPhoto(String linkId, Uint8List imageBytes) async {
-    throw UnimplementedError('sendPhoto implemented in Task 5');
+    final currentUser = _auth.currentUser;
+    if (currentUser == null) {
+      return const Left(ChatFailure('Cannot send photo: no authenticated user'));
+    }
+    try {
+      final msgId = _messagesRef(linkId).doc().id;
+
+      final callable = _functions.httpsCallable('requestPhotoUploadUrl');
+      final result = await callable.call({'linkId': linkId, 'msgId': msgId});
+      final uploadUrl = result.data['uploadUrl'] as String;
+      final photoRef = result.data['photoRef'] as String;
+
+      final response = await _httpClient.put(
+        Uri.parse(uploadUrl),
+        headers: {'Content-Type': 'image/jpeg'},
+        body: imageBytes,
+      );
+      if (response.statusCode != 200) {
+        return Left(ChatFailure('Upload failed: ${response.statusCode}'));
+      }
+
+      await _messagesRef(linkId).doc(msgId).set({
+        'type': 'photo_once',
+        'senderId': currentUser.uid,
+        'text': null,
+        'photoRef': photoRef,
+        'viewedBy': [],
+        'deletedFromStorage': false,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
+      return const Right(unit);
+    } on FirebaseFunctionsException catch (e) {
+      return Left(ChatFailure(e.message ?? 'Photo upload failed: $e'));
+    } catch (e) {
+      return Left(ChatFailure('Photo upload failed: $e'));
+    }
   }
 
   @override
   Future<Either<Failure, String>> requestPhotoView(String linkId, String msgId) async {
-    throw UnimplementedError('requestPhotoView implemented in Task 5');
+    try {
+      final callable = _functions.httpsCallable('getPhotoViewUrl');
+      final result = await callable.call({'linkId': linkId, 'msgId': msgId});
+      return Right(result.data['viewUrl'] as String);
+    } on FirebaseFunctionsException catch (e) {
+      return Left(ChatFailure(e.message ?? 'Could not get photo URL: $e'));
+    } catch (e) {
+      return Left(ChatFailure('Could not get photo URL: $e'));
+    }
   }
 
   @override
