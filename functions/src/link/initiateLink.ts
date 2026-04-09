@@ -55,8 +55,7 @@ export const initiateLinkHandler = async (
   const db = admin.firestore();
   const now = new Date();
 
-  const blockDoc = await admin
-    .firestore()
+  const blockDoc = await db
     .collection('blocks')
     .doc(targetUid)
     .collection('blocked')
@@ -83,7 +82,7 @@ export const initiateLinkHandler = async (
       .where('createdAt', '>=', fiveMinAgo)
       .get(),
   ]);
-  if (recentAB.size + recentBA.size >= 4) {
+  if (recentAB.docs.length + recentBA.docs.length >= 4) {
     throw new HttpsError('not-found', 'User not found');
   }
 
