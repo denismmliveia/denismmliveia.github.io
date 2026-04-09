@@ -117,8 +117,17 @@ class _AccountMenu extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(Icons.more_horiz,
-              size: 16,
-              color: AppColors.white.withValues(alpha: 0.2)),
+              size: 18,
+              color: AppColors.white.withValues(alpha: 0.5)),
+          const SizedBox(width: 4),
+          Text(
+            'cuenta',
+            style: TextStyle(
+              fontSize: 11,
+              letterSpacing: 1.5,
+              color: AppColors.white.withValues(alpha: 0.4),
+            ),
+          ),
         ],
       ),
     );
