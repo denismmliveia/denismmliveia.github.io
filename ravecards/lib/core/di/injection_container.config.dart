@@ -50,6 +50,8 @@ import 'package:ravecards/features/link/domain/usecases/watch_link.dart'
     as _i502;
 import 'package:ravecards/features/link/domain/usecases/watch_my_links.dart'
     as _i843;
+import 'package:ravecards/features/scan/data/repositories/scan_repository_impl.dart'
+    as _i679;
 import 'package:ravecards/features/scan/domain/repositories/scan_repository.dart'
     as _i476;
 import 'package:ravecards/features/scan/domain/usecases/confirm_link.dart'
@@ -78,20 +80,16 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i457.FirebaseStorage>(() => firebaseModule.storage);
     gh.lazySingleton<_i809.FirebaseFunctions>(() => firebaseModule.functions);
     gh.lazySingleton<_i116.GoogleSignIn>(() => firebaseModule.googleSignIn);
-    gh.factory<_i397.ConfirmLink>(
-        () => _i397.ConfirmLink(gh<_i476.ScanRepository>()));
-    gh.factory<_i1030.InitiateLink>(
-        () => _i1030.InitiateLink(gh<_i476.ScanRepository>()));
-    gh.factory<_i718.PreviewCard>(
-        () => _i718.PreviewCard(gh<_i476.ScanRepository>()));
-    gh.factory<_i248.ValidateQrToken>(
-        () => _i248.ValidateQrToken(gh<_i476.ScanRepository>()));
     gh.lazySingleton<_i184.LinkRepository>(
         () => _i951.LinkRepositoryImpl(gh<_i974.FirebaseFirestore>()));
     gh.factory<_i502.WatchLink>(
         () => _i502.WatchLink(gh<_i184.LinkRepository>()));
     gh.factory<_i843.WatchMyLinks>(
         () => _i843.WatchMyLinks(gh<_i184.LinkRepository>()));
+    gh.lazySingleton<_i476.ScanRepository>(() => _i679.ScanRepositoryImpl(
+          gh<_i809.FirebaseFunctions>(),
+          gh<_i974.FirebaseFirestore>(),
+        ));
     gh.lazySingleton<_i969.AuthRepository>(() => _i838.AuthRepositoryImpl(
           firebaseAuth: gh<_i59.FirebaseAuth>(),
           firestore: gh<_i974.FirebaseFirestore>(),
@@ -110,6 +108,14 @@ extension GetItInjectableX on _i174.GetIt {
     gh.factory<_i798.SignOut>(() => _i798.SignOut(gh<_i969.AuthRepository>()));
     gh.factory<_i661.VerifyOtp>(
         () => _i661.VerifyOtp(gh<_i969.AuthRepository>()));
+    gh.factory<_i397.ConfirmLink>(
+        () => _i397.ConfirmLink(gh<_i476.ScanRepository>()));
+    gh.factory<_i1030.InitiateLink>(
+        () => _i1030.InitiateLink(gh<_i476.ScanRepository>()));
+    gh.factory<_i718.PreviewCard>(
+        () => _i718.PreviewCard(gh<_i476.ScanRepository>()));
+    gh.factory<_i248.ValidateQrToken>(
+        () => _i248.ValidateQrToken(gh<_i476.ScanRepository>()));
     gh.factory<_i933.CreateCard>(
         () => _i933.CreateCard(gh<_i816.CardRepository>()));
     gh.factory<_i642.GetCard>(() => _i642.GetCard(gh<_i816.CardRepository>()));
