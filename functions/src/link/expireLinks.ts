@@ -35,10 +35,10 @@ export async function expireLinksBatch(): Promise<void> {
         now
       );
       await cleanupPhotos(doc.id);
+      await doc.ref.update({ status: 'expired' });
     } catch (err) {
-      console.error(`createMemories/cleanupPhotos failed for ${doc.id}:`, err);
+      console.error(`Failed to expire link ${doc.id}:`, err);
     }
-    await doc.ref.update({ status: 'expired' });
   }
 
   // --- Expire stale pending links ---
