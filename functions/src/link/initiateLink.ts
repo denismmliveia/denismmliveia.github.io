@@ -36,9 +36,13 @@ export const initiateLinkHandler = async (
   // 1. Verify the scanned JWT
   let targetUid: string;
   try {
-    const decoded = jwt.verify(request.data.token, getSecret()) as { uid: string };
-    targetUid = decoded.uid;
-  } catch {
+    const payload = jwt.verify(request.data.token, getSecret()) as { uid?: string };
+    if (typeof payload.uid !== 'string' || payload.uid.length === 0) {
+      throw new HttpsError('invalid-argument', 'Invalid or expired QR token');
+    }
+    targetUid = payload.uid;
+  } catch (err) {
+    if (err instanceof HttpsError) throw err;
     throw new HttpsError('invalid-argument', 'Invalid or expired QR token');
   }
 
@@ -87,14 +91,21 @@ export const initiateLinkHandler = async (
       // Within window
       if (data.initiatedBy === targetUid) {
         // TARGET initiated first → this scan completes the mutual exchange
+        // Persist the 'linked' status to Firestore (C1 fix — without this the doc stays 'pending' forever)
+        await doc.ref.update({
+          status: 'linked',
+          linkedAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+        // NOTE (C2): No transaction here — concurrent duplicate scans are a known V1 limitation.
+        // TODO: wrap in transaction to prevent race on concurrent scans in a future iteration.
         return { status: 'linked', linkId: doc.id, isMutual: true };
       } else {
         // SCANNER already initiated → re-scan within window, no-op
         return { status: 'pending', linkId: doc.id, isMutual: false };
       }
     } else {
-      // Expired PENDING → mark as expired so it no longer pollutes the list
-      await doc.ref.update({ status: 'expired' });
+      // Expired PENDING → mark as expired so it no longer pollutes the list (fire-and-forget — I4 fix)
+      doc.ref.update({ status: 'expired' }).catch(() => {});
     }
   }
 

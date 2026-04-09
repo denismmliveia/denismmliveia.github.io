@@ -167,7 +167,7 @@ describe('initiateLink', () => {
         initiatedBy: TARGET_UID,
         pendingExpiresAt: { toDate: () => futureDate },
       }),
-      ref: { update: jest.fn() },
+      ref: { update: jest.fn().mockResolvedValue(undefined) },
     }];
 
     const token = makeToken(TARGET_UID);
@@ -178,6 +178,10 @@ describe('initiateLink', () => {
     expect(result.status).toBe('linked');
     expect(result.isMutual).toBe(true);
     expect(result.linkId).toBe('existing-link');
+    // Verify Firestore was updated with 'linked' status (C1 fix)
+    expect(mockLinkDocs[0].ref.update).toHaveBeenCalledWith(
+      expect.objectContaining({ status: 'linked' })
+    );
   });
 
   it('creates new PENDING when existing PENDING is expired', async () => {
@@ -191,7 +195,7 @@ describe('initiateLink', () => {
         initiatedBy: TARGET_UID,
         pendingExpiresAt: { toDate: () => pastDate },
       }),
-      ref: { update: jest.fn() },
+      ref: { update: jest.fn().mockResolvedValue(undefined) },
     }];
 
     const token = makeToken(TARGET_UID);
