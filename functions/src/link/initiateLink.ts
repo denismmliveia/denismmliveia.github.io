@@ -52,6 +52,9 @@ export const initiateLinkHandler = async (
   }
 
   // 3. Check if target has blocked scanner (silent rejection)
+  const db = admin.firestore();
+  const now = new Date();
+
   const blockDoc = await admin
     .firestore()
     .collection('blocks')
@@ -64,9 +67,27 @@ export const initiateLinkHandler = async (
     throw new HttpsError('not-found', 'User not found');
   }
 
+  // 3.5 Anti-abuse: reject if >= 4 link attempts between this pair in last 5 minutes
+  const fiveMinAgo = admin.firestore.Timestamp.fromDate(
+    new Date(now.getTime() - 5 * 60 * 1000)
+  );
+  const [recentAB, recentBA] = await Promise.all([
+    db.collection('links')
+      .where('userA', '==', scannerUid)
+      .where('userB', '==', targetUid)
+      .where('createdAt', '>=', fiveMinAgo)
+      .get(),
+    db.collection('links')
+      .where('userA', '==', targetUid)
+      .where('userB', '==', scannerUid)
+      .where('createdAt', '>=', fiveMinAgo)
+      .get(),
+  ]);
+  if (recentAB.size + recentBA.size >= 4) {
+    throw new HttpsError('not-found', 'User not found');
+  }
+
   // 4. Look for an active PENDING link between these two users (either direction)
-  const db = admin.firestore();
-  const now = new Date();
 
   const [snapAB, snapBA] = await Promise.all([
     db.collection('links')
@@ -98,6 +119,27 @@ export const initiateLinkHandler = async (
         });
         // NOTE (C2): No transaction here — concurrent duplicate scans are a known V1 limitation.
         // TODO: wrap in transaction to prevent race on concurrent scans in a future iteration.
+
+        // Notify the initiator (targetUid) that their scan was reciprocated
+        try {
+          const initiatorDoc = await db.collection('users').doc(targetUid).get();
+          const fcmToken: string | undefined = initiatorDoc.data()?.fcmToken;
+          if (fcmToken) {
+            await admin.messaging().send({
+              token: fcmToken,
+              notification: {
+                title: '¡Vínculo creado!',
+                body: 'Tu escaneo fue correspondido. El vínculo ya está activo.',
+              },
+              data: { linkId: doc.id, type: 'link_created' },
+              android: { priority: 'high' },
+            });
+          }
+        } catch (fcmErr) {
+          // FCM failure is non-fatal — the link is already created
+          console.error('FCM notification failed:', fcmErr);
+        }
+
         return { status: 'linked', linkId: doc.id, isMutual: true };
       } else {
         // SCANNER already initiated → re-scan within window, no-op

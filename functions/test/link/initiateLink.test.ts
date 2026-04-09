@@ -58,6 +58,7 @@ jest.mock('firebase-admin', () => ({
       FieldValue: { serverTimestamp: jest.fn() },
     }
   ),
+  messaging: jest.fn(() => ({ send: jest.fn().mockResolvedValue('msg-id') })),
   initializeApp: jest.fn(),
 }));
 
