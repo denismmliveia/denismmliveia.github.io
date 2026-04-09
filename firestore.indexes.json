@@ -22,6 +22,15 @@
       "fields": [
         { "fieldPath": "userA", "order": "ASCENDING" },
         { "fieldPath": "userB", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "links",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "userA", "order": "ASCENDING" },
+        { "fieldPath": "userB", "order": "ASCENDING" },
         { "fieldPath": "createdAt", "order": "ASCENDING" }
       ]
     },
