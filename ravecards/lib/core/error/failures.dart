@@ -35,3 +35,11 @@ class ScanFailure extends Failure {
 class ChatFailure extends Failure {
   const ChatFailure(super.message);
 }
+
+class MemoryFailure extends Failure {
+  const MemoryFailure(super.message);
+}
+
+class ModerationFailure extends Failure {
+  const ModerationFailure(super.message);
+}
