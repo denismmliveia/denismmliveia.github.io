@@ -11,8 +11,8 @@ import 'firebase_options.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  await FcmService.init();
   await configureDependencies();
+  FcmService.init(); // fire-and-forget — no bloquea el arranque
   runApp(const RaveCardsApp());
 }
 
