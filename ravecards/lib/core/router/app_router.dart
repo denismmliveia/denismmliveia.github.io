@@ -1,45 +1,104 @@
 // lib/core/router/app_router.dart
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
+import '../di/injection_container.dart';
 import '../../features/auth/presentation/pages/login_page.dart';
 import '../../features/auth/presentation/pages/phone_verify_page.dart';
 import '../../features/card/presentation/pages/create_card_page.dart';
 import '../../features/card/presentation/pages/my_card_page.dart';
+import '../../features/link/presentation/pages/links_page.dart';
+import '../../features/memories/presentation/pages/memories_stub_page.dart';
+import '../../features/scan/presentation/cubit/scan_cubit.dart';
+import '../../features/scan/presentation/pages/scan_camera_page.dart';
+import '../../features/scan/presentation/pages/scan_linked_page.dart';
+import '../../features/scan/presentation/pages/scan_pending_page.dart';
+import '../../features/scan/presentation/pages/scan_preview_page.dart';
+import '../presentation/pages/main_scaffold.dart';
 
 class AppRouter {
   static final GoRouter router = GoRouter(
-    initialLocation: '/login',
+    initialLocation: '/card',
     redirect: (context, state) async {
       final user = FirebaseAuth.instance.currentUser;
-      final isOnAuth = state.matchedLocation.startsWith('/login') ||
-          state.matchedLocation.startsWith('/verify-otp');
+      final loc = state.matchedLocation;
+      final isOnAuth =
+          loc.startsWith('/login') || loc.startsWith('/verify-otp');
 
       if (user == null && !isOnAuth) return '/login';
       if (user != null && isOnAuth) return '/card';
       return null;
     },
     routes: [
+      // Auth routes (outside shell — no bottom nav)
       GoRoute(path: '/login', builder: (_, __) => const LoginPage()),
       GoRoute(
         path: '/verify-otp',
         builder: (_, state) =>
             PhoneVerifyPage(verificationId: state.extra as String),
       ),
-      GoRoute(path: '/create-card', builder: (_, __) => const CreateCardPage()),
       GoRoute(
-        path: '/card',
-        builder: (_, __) => const MyCardPage(),
-      ),
-      // Placeholder para Plan 2
+          path: '/create-card', builder: (_, __) => const CreateCardPage()),
+
+      // Scan routes (full-screen — outside shell, ScanCubit provided here)
       GoRoute(
         path: '/scan',
-        builder: (_, __) => const Scaffold(
+        builder: (_, __) => BlocProvider(
+          create: (_) => sl<ScanCubit>(),
+          child: const ScanCameraPage(),
+        ),
+        routes: [
+          GoRoute(
+            path: 'preview',
+            builder: (context, __) => BlocProvider.value(
+              value: BlocProvider.of<ScanCubit>(context),
+              child: const ScanPreviewPage(),
+            ),
+          ),
+          GoRoute(
+            path: 'pending/:linkId',
+            builder: (context, __) => BlocProvider.value(
+              value: BlocProvider.of<ScanCubit>(context),
+              child: const ScanPendingPage(),
+            ),
+          ),
+          GoRoute(
+            path: 'linked/:linkId',
+            builder: (context, __) => BlocProvider.value(
+              value: BlocProvider.of<ScanCubit>(context),
+              child: const ScanLinkedPage(),
+            ),
+          ),
+        ],
+      ),
+
+      // Chat route stub — Plan 3
+      GoRoute(
+        path: '/chat/:linkId',
+        builder: (_, state) => Scaffold(
+          backgroundColor: const Color(0xFF06000F),
           body: Center(
-            child: Text('Scan — Plan 2', style: TextStyle(color: Colors.white)),
+            child: Text(
+              'Chat — Plan 3\n${state.pathParameters['linkId']}',
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Colors.white),
+            ),
           ),
         ),
+      ),
+
+      // Main shell with bottom navigation
+      ShellRoute(
+        builder: (context, state, child) => MainScaffold(child: child),
+        routes: [
+          GoRoute(path: '/card', builder: (_, __) => const MyCardPage()),
+          GoRoute(path: '/links', builder: (_, __) => const LinksPage()),
+          GoRoute(
+              path: '/memories',
+              builder: (_, __) => const MemoriesStubPage()),
+        ],
       ),
     ],
   );
