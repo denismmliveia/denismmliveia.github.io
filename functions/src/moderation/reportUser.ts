@@ -34,6 +34,18 @@ export const reportUserHandler = async (
 
   const db = admin.firestore();
 
+  // Rate limit: max 5 reports per user per hour
+  const oneHourAgo = admin.firestore.Timestamp.fromDate(
+    new Date(Date.now() - 60 * 60 * 1000)
+  );
+  const recentReports = await db.collection('reports')
+    .where('reporterUid', '==', callerUid)
+    .where('createdAt', '>=', oneHourAgo)
+    .get();
+  if (recentReports.docs.length >= 5) {
+    throw new HttpsError('resource-exhausted', 'Too many reports. Try again later.');
+  }
+
   // Create report document
   await db.collection('reports').add({
     reporterUid: callerUid,
