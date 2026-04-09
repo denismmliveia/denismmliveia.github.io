@@ -83,13 +83,15 @@ class CardCubit extends Cubit<CardState> {
     );
   }
 
-  Future<void> deleteCard(String uid) async {
+  Future<bool> deleteCard(String uid) async {
     _qrRefreshTimer?.cancel();
-    emit(CardLoading());
     final result = await _repository.deleteCard(uid);
-    result.fold(
-      (failure) => emit(CardError(failure.message)),
-      (_) => emit(CardNotFound()),
+    return result.fold(
+      (failure) {
+        emit(CardError(failure.message));
+        return false;
+      },
+      (_) => true,
     );
   }
 

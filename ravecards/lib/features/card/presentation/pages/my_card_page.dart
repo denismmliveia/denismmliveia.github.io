@@ -118,7 +118,8 @@ class _AccountMenu extends StatelessWidget {
             );
             if (confirm == true && context.mounted) {
               final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
-              context.read<CardCubit>().deleteCard(uid);
+              final deleted = await context.read<CardCubit>().deleteCard(uid);
+              if (deleted && context.mounted) context.go('/create-card');
             }
           case 'logout':
             await FirebaseAuth.instance.signOut();

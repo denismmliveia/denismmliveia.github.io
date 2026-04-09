@@ -29,7 +29,9 @@ class CardRepositoryImpl implements CardRepository {
   Future<Either<CardFailure, CardEntity>> getCard(String uid) async {
     try {
       final snap = await _firestore.collection('users').doc(uid).get();
-      if (!snap.exists) return const Left(CardFailure('Tarjeta no encontrada'));
+      if (!snap.exists || snap.data()?['hasCard'] != true) {
+        return const Left(CardFailure('Tarjeta no encontrada'));
+      }
       return Right(CardModel.fromSnapshot(snap));
     } catch (e) {
       return Left(CardFailure(e.toString()));
