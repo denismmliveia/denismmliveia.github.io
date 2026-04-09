@@ -22,6 +22,8 @@ class LinkRepositoryImpl implements LinkRepository {
     final List<LinkEntity> listA = [];
     final List<LinkEntity> listB = [];
 
+    // Emit on every update from either query (not combineLatest semantics).
+    // The list may be partial until both queries have fired at least once.
     void emit() => controller.add(Right([...listA, ...listB]));
 
     final subA = _firestore
@@ -63,9 +65,18 @@ class LinkRepositoryImpl implements LinkRepository {
 
   @override
   Stream<Either<Failure, LinkEntity>> watchLink(String linkId) {
-    return _firestore.collection('links').doc(linkId).snapshots().map((doc) {
-      if (!doc.exists) return Left<Failure, LinkEntity>(const LinkFailure('Link not found'));
-      return Right<Failure, LinkEntity>(LinkModel.fromFirestore(doc));
-    });
+    return _firestore
+        .collection('links')
+        .doc(linkId)
+        .snapshots()
+        .map<Either<Failure, LinkEntity>>((doc) {
+          if (!doc.exists) {
+            return const Left(LinkFailure('Link not found'));
+          }
+          return Right(LinkModel.fromFirestore(doc));
+        })
+        .handleError(
+          (e) => Left<Failure, LinkEntity>(LinkFailure(e.toString())),
+        );
   }
 }

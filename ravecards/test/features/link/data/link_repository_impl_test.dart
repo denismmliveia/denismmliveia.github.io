@@ -27,14 +27,14 @@ void main() {
     repository = LinkRepositoryImpl(mockFirestore);
   });
 
-  MockQueryDocumentSnapshot _buildLinkDoc({
+  MockQueryDocumentSnapshot<Map<String, dynamic>> _buildLinkDoc({
     String id = 'link-1',
     String userA = 'uid-a',
     String userB = 'uid-b',
     String status = 'pending',
     String initiatedBy = 'uid-a',
   }) {
-    final doc = MockQueryDocumentSnapshot();
+    final doc = MockQueryDocumentSnapshot<Map<String, dynamic>>();
     when(doc.id).thenReturn(id);
     when(doc.data()).thenReturn({
       'userA': userA,
@@ -50,6 +50,58 @@ void main() {
     });
     return doc;
   }
+
+  group('watchMyLinks', () {
+    test('emits combined list from userA and userB queries', () async {
+      // Set up mocks for two separate query chains on the same collection
+      final mockCollection = MockCollectionReference<Map<String, dynamic>>();
+
+      // userA query chain
+      final mockQueryA1 = MockQuery<Map<String, dynamic>>();
+      final mockQueryA2 = MockQuery<Map<String, dynamic>>();
+      // userB query chain
+      final mockQueryB1 = MockQuery<Map<String, dynamic>>();
+      final mockQueryB2 = MockQuery<Map<String, dynamic>>();
+
+      final snapA = MockQuerySnapshot<Map<String, dynamic>>();
+      final snapB = MockQuerySnapshot<Map<String, dynamic>>();
+
+      final docA = _buildLinkDoc(id: 'link-1', userA: 'uid-a', userB: 'uid-x');
+      final docB = _buildLinkDoc(id: 'link-2', userA: 'uid-x', userB: 'uid-a');
+
+      when(snapA.docs).thenReturn([docA]);
+      when(snapB.docs).thenReturn([docB]);
+
+      // Both queries call collection('links') — same mock
+      when(mockFirestore.collection('links'))
+          .thenReturn(mockCollection as CollectionReference<Map<String, dynamic>>);
+
+      // userA query chain: where(userA) -> where(status) -> snapshots
+      when(mockCollection.where('userA', isEqualTo: 'uid-a')).thenReturn(mockQueryA1);
+      when(mockQueryA1.where('status', whereIn: anyNamed('whereIn'))).thenReturn(mockQueryA2);
+      when(mockQueryA2.snapshots()).thenAnswer((_) => Stream.value(snapA));
+
+      // userB query chain: where(userB) -> where(status) -> snapshots
+      when(mockCollection.where('userB', isEqualTo: 'uid-a')).thenReturn(mockQueryB1);
+      when(mockQueryB1.where('status', whereIn: anyNamed('whereIn'))).thenReturn(mockQueryB2);
+      when(mockQueryB2.snapshots()).thenAnswer((_) => Stream.value(snapB));
+
+      // Collect all emitted values
+      final emitted = <List<LinkEntity>>[];
+      final sub = repository.watchMyLinks('uid-a').listen((result) {
+        result.fold((_) {}, (links) => emitted.add(links));
+      });
+
+      // Allow streams to emit
+      await Future.delayed(Duration.zero);
+      sub.cancel();
+
+      // Should have received at least one emission containing both links
+      expect(emitted, isNotEmpty);
+      final allLinkIds = emitted.last.map((l) => l.linkId).toList();
+      expect(allLinkIds, containsAll(['link-1', 'link-2']));
+    });
+  });
 
   group('watchLink', () {
     test('emits LinkEntity for the given linkId', () async {
