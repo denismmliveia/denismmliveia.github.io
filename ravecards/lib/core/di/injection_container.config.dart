@@ -62,6 +62,8 @@ import 'package:ravecards/features/scan/domain/usecases/preview_card.dart'
     as _i718;
 import 'package:ravecards/features/scan/domain/usecases/validate_qr_token.dart'
     as _i248;
+import 'package:ravecards/features/scan/presentation/cubit/scan_cubit.dart'
+    as _i707;
 
 extension GetItInjectableX on _i174.GetIt {
 // initializes the registration of main-scope dependencies inside of GetIt
@@ -126,6 +128,13 @@ extension GetItInjectableX on _i174.GetIt {
           verifyOtp: gh<_i661.VerifyOtp>(),
           signInWithGoogle: gh<_i958.SignInWithGoogle>(),
           signOut: gh<_i798.SignOut>(),
+        ));
+    gh.factory<_i707.ScanCubit>(() => _i707.ScanCubit(
+          validateQrToken: gh<_i248.ValidateQrToken>(),
+          previewCard: gh<_i718.PreviewCard>(),
+          initiateLink: gh<_i1030.InitiateLink>(),
+          confirmLink: gh<_i397.ConfirmLink>(),
+          watchLink: gh<_i502.WatchLink>(),
         ));
     gh.factory<_i759.CardCubit>(() => _i759.CardCubit(
           getCard: gh<_i642.GetCard>(),
