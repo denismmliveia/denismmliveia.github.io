@@ -31,7 +31,7 @@ class MemoryModel extends MemoryEntity {
       otherUserPhotoUrl: data['otherUserPhotoUrl'] as String?,
       linkedAt: tsToDate(data['linkedAt']),
       endedAt: tsToDate(data['endedAt']) ?? DateTime.now(),
-      status: parseStatus(data['status'] as String?),
+      status: parseStatus(data['status']?.toString()),
     );
   }
 }
