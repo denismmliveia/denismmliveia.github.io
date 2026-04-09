@@ -10,15 +10,15 @@ RaveCards **no** intenta sustituir WhatsApp, Instagram ni una red social tradici
 
 ## Estado actual del repositorio
 
-Este repositorio **no contiene todavía la aplicación completa**.
+**V1 MVP completa** (2026-04-09).
 
-Hoy contiene principalmente:
+Este repositorio contiene el producto funcional:
 
-- un **prototipo visual fundacional** en `index.html`,
-- documentación de producto y dirección del proyecto,
-- y material de referencia para mantener la identidad visual y conceptual de RaveCards.
-
-El `index.html` actual representa la **Rave Card** como pieza visual base: una tarjeta animada con estética rave, foto, campos de identidad expresivos y un QR visible. Esa pieza sirve como referencia de tono, atmósfera e interacción, pero **no representa aún el sistema completo de producto**.
+- **App Flutter** (Android) — 7 features con Clean Architecture + BLoC.
+- **10 Cloud Functions** (TypeScript, Node.js 20) desplegadas en Firebase.
+- **~90 tests Flutter** + **48 tests TypeScript/Jest**.
+- Auth (teléfono + Google), tarjeta con QR dinámico, escaneo cruzado mutuo, chat temporal con fotos de visualización única, caducidad automática, memorias mínimas, moderación completa.
+- Firebase project: `ravecards-dev` (Firestore, Auth, Storage, Cloud Functions, FCM).
 
 ---
 
@@ -116,7 +116,7 @@ El MVP debe demostrar una sola cosa:
 
 > que en un entorno de fiesta la gente prefiere usar RaveCards antes que intercambiar Instagram manualmente.
 
-### Funcionalidades núcleo previstas
+### Funcionalidades núcleo implementadas
 
 - registro e inicio de sesión,
 - creación de tarjeta de usuario,
@@ -171,85 +171,34 @@ La restricción es parte del valor.
 
 ---
 
-## El prototipo visual actual
+## Prototipo visual original
 
-El archivo `index.html` contiene el **prototipo visual fundacional** del proyecto.
-
-Su papel es:
-
-- fijar la atmósfera visual,
-- consolidar la estética rave / techno,
-- establecer el tono de la tarjeta,
-- y servir como artefacto de referencia para el diseño futuro.
-
-### Qué muestra hoy el prototipo
-
-- una tarjeta con fondo oscuro,
-- acentos neón,
-- animaciones de entrada,
-- foto circular,
-- nombre,
-- tagline,
-- campos de identidad social,
-- y un QR visible generado a partir de `card_url`.
-
-### Qué no representa todavía
-
-El HTML actual **no implementa todavía**:
-
-- escaneo cruzado real,
-- validación backend,
-- estados de vínculo,
-- chat temporal funcional,
-- caducidad sistémica,
-- seguridad real,
-- ni comportamiento multiusuario.
-
-Es una referencia visual, no la aplicación terminada.
+El archivo `index.html` es el prototipo visual que estableció la estética rave del proyecto (tarjeta animada, fondo oscuro, neón, foto circular, QR). Se conserva como referencia estética histórica. El producto real está en `ravecards/` y `functions/`.
 
 ---
 
-## Estructura esperada del proyecto
+## Estructura del repositorio
 
-La estructura irá evolucionando, pero conceptualmente este repositorio se apoya en tres capas:
-
-### 1. Identidad visual
-La tarjeta, el tono visual, la atmósfera y la experiencia sensorial.
-
-### 2. Reglas de producto
-La lógica del sistema:
-
-- quién puede conectar,
-- cuándo,
-- bajo qué condiciones,
-- durante cuánto tiempo,
-- y qué sobrevive tras expirar.
-
-### 3. Implementación técnica
-La futura app real con:
-
-- backend,
-- tokens/QR dinámicos,
-- validación temporal,
-- chat,
-- moderación,
-- y gestión de estados.
+```
+ravecards/                  App Flutter (Android) — Clean Architecture + BLoC
+functions/                  Cloud Functions (TypeScript, Node.js 20) — 10 funciones
+firestore.rules             Reglas de seguridad Firestore
+storage.rules               Reglas de seguridad Storage
+firestore.indexes.json      Índices compuestos
+docs/superpowers/
+  specs/                    Spec de diseño V1
+  plans/                    4 planes de implementación (históricos)
+index.html                  Prototipo visual original (referencia estética)
+CLAUDE.md                   Guía de producto + guía técnica para agentes
+```
 
 ---
 
-## Documentos importantes del repositorio
+## Documentos importantes
 
-### `README.md`
-Puerta de entrada al proyecto.
-Explica qué es RaveCards, qué contiene hoy el repo y hacia dónde va.
-
-### `CLAUDE.md`
-Guía para agentes o asistentes que trabajen sobre el proyecto.
-Debe proteger la identidad del producto y evitar que el desarrollo derive hacia una red social genérica o una reinterpretación incorrecta del prototipo.
-
-### `index.html`
-Prototipo visual fundacional.
-No debe confundirse con la arquitectura definitiva del producto.
+- **`CLAUDE.md`** — Guía completa para agentes: filosofía de producto + guía técnica de replicación. Leer primero.
+- **`docs/superpowers/specs/2026-04-07-ravecards-v1-design.md`** — Spec técnico de V1 (con notas post-implementación).
+- **`docs/superpowers/plans/`** — 4 planes de implementación detallados (históricos, no modificar).
 
 ---
 
@@ -267,9 +216,9 @@ Cualquier agente, diseñador o desarrollador que trabaje sobre este repositorio 
 
 ---
 
-## Riesgos principales a validar
+## Riesgos a validar en campo
 
-Antes de entrar fuerte en desarrollo, hay que validar sobre todo esto:
+Con la V1 construida, estos son los riesgos a validar en pruebas reales:
 
 ### 1. Fluidez del escaneo cruzado
 ¿Funciona de verdad en condiciones reales de fiesta?
@@ -297,20 +246,8 @@ Si el nombre entra en lenguaje cotidiano dentro del contexto de uso, hay identid
 
 ---
 
-## Siguientes pasos recomendados
-
-Antes de construir a lo loco, el orden correcto es:
-
-1. cerrar la **definición funcional del MVP**,
-2. definir el **flujo de experiencia pantalla por pantalla**,
-3. fijar reglas exactas de estados, expiración y moderación,
-4. preparar un **plan de validación en contexto real**,
-5. y solo después planificar arquitectura y desarrollo.
-
----
-
 ## Resumen corto
 
 **RaveCards** es una app social efímera para fiestas que permite conectar con personas conocidas en persona mediante tarjetas temporales con QR, escaneo cruzado mutuo, chat temporal y caducidad total del vínculo.
 
-El repositorio actual contiene el **prototipo visual fundacional** y la base documental del producto, no la aplicación final.
+La V1 MVP está completa y lista para validación en campo.

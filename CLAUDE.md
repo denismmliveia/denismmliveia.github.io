@@ -58,35 +58,17 @@ La gente puede usarlo para ligar. Eso se asume. Pero el producto no debe diseña
 
 ## Estado actual del proyecto
 
-### Estado actual real
+**V1 MVP completa** (2026-04-09).
 
-Actualmente existe un **prototipo visual de tarjeta** en un único archivo HTML autocontenido.
+El producto está construido y funcional:
 
-Ese prototipo sirve para:
+- **App Flutter** (Android) con Clean Architecture, BLoC, 7 features completas.
+- **10 Cloud Functions** desplegadas en Firebase (europe-west1).
+- **4 planes de implementación** ejecutados y merged a `main`.
+- **~90 tests Flutter** + **48 tests TypeScript/Jest** pasando.
+- Firebase project: `ravecards-dev` (Auth, Firestore, Storage, Cloud Functions, FCM).
 
-- capturar la estética,
-- probar la presencia visual de la tarjeta,
-- validar tono,
-- y conservar una referencia concreta del “objeto social” que inspiró el producto.
-
-### Lo que ese prototipo no es
-
-Ese HTML actual **no representa la arquitectura final del producto**.
-
-No debe tomarse como:
-
-- arquitectura definitiva,
-- modelo real de datos de backend,
-- flujo completo de RaveCards,
-- ni implementación funcional de la lógica de enlace mutuo, chat temporal, caducidad, seguridad o moderación.
-
-### Cómo debe interpretarse
-
-El prototipo HTML debe tratarse como:
-
-- **referencia visual y experiencial**, no como sistema final,
-- punto de partida para lenguaje visual y tono,
-- y objeto útil para demos rápidas, exploración visual y validación de sensación de producto.
+El prototipo visual original (`index.html`) sigue existiendo como referencia estética histórica. No es el producto activo.
 
 ---
 
@@ -153,33 +135,9 @@ Diseñar para **que el momento salga bien**.
 
 ---
 
-## Relación entre el prototipo de tarjeta y el producto completo
+## Relación entre el prototipo de tarjeta y el producto
 
-### Rol del prototipo
-La tarjeta HTML actual representa la **unidad visual básica de identidad temporal**.
-
-### Rol del producto completo
-El producto completo añade por encima:
-
-- autenticación,
-- gestión de usuario,
-- tarjeta activa,
-- QR dinámico,
-- flujo de escaneo cruzado,
-- ventana de 60 segundos,
-- validación backend,
-- enlace temporal,
-- chat 1 a 1,
-- revocación,
-- bloqueo,
-- reporte,
-- caducidad,
-- y recuerdo mínimo tras expiración.
-
-### Regla de diseño importante
-Cuando haya tensión entre “mantener el HTML autocontenido original” y “construir bien RaveCards como producto”, debe priorizarse el producto.
-
-El HTML original es importante. Pero no manda sobre la lógica del sistema final.
+El `index.html` fue el punto de partida visual que definió la estética rave del proyecto. El producto real está construido en `ravecards/` (Flutter) y `functions/` (Cloud Functions). El prototipo sigue siendo útil como referencia estética, pero no representa la arquitectura, los datos ni la lógica del sistema.
 
 ---
 
@@ -195,7 +153,7 @@ La tarjeta debe contemplar al menos estos campos:
 - género favorito,
 - orientación,
 - estado civil,
-- tema o género favorito.
+- canción favorita (con link opcional a Spotify/YouTube).
 
 ### Regla de naming
 El nombre visible puede ser:
@@ -389,62 +347,147 @@ No introducir un sistema de skins, temas por usuario o temas por evento salvo qu
 
 ---
 
-## Prototipo HTML actual: reglas de conservación
+## Prototipo HTML original
 
-El prototipo actual de tarjeta puede seguir existiendo como pieza autocontenida.
-
-### Mantener si se trabaja sobre el HTML demo
-- archivo sencillo y portable,
-- HTML/CSS/JS comprensibles,
-- visual fuerte,
-- carga inmediata,
-- QR visible,
-- animaciones suaves,
-- y compatibilidad móvil correcta.
-
-### No confundir con el producto
-Si se edita el HTML demo, dejar claro si el cambio afecta a:
-
-- solo demo visual,
-- solo diseño de la tarjeta,
-- o definición del producto completo.
-
-### Regla importante
-No introducir en el HTML demo comportamientos falsos que sugieran que ya existe lógica real de backend cuando no existe.
-
-Si algo es simulación visual, debe seguir siendo claramente demo o prototipo.
+El archivo `index.html` es una referencia visual histórica. No es el producto activo. Se conserva para consulta estética.
 
 ---
 
-## Código y arquitectura: criterio general
+## Guía técnica para replicación
 
-### Para prototipos
-Se permite simplicidad extrema si el objetivo es:
+Esta sección permite a un agente sin contexto entender, construir y continuar el proyecto.
 
-- demo visual,
-- exploración UX,
-- prueba de concepto,
-- validación rápida.
+### Estructura del repositorio
 
-### Para producto real
-No trasladar sin pensar las decisiones del demo al producto final.
+```
+ravecards/                  App Flutter (Android V1)
+  lib/
+    core/                   DI (injectable+get_it), router (GoRouter), theme, errors, services
+    features/
+      auth/                 Firebase Auth (teléfono SMS OTP + Google)
+      card/                 Tarjeta de usuario, QR dinámico
+      scan/                 Cámara QR, escaneo, previsualización
+      link/                 Vínculos activos, countdown, lista
+      chat/                 Mensajes texto + fotos visualización única
+      memories/             Recuerdos mínimos post-expiración
+      moderation/           Revocar, bloquear, reportar (solo domain+data, sin UI propia)
+  test/                     ~90 tests (mockito + mocktail + bloc_test)
 
-Evitar que el sistema real nazca atado a:
+functions/                  Cloud Functions (Node.js 20, TypeScript)
+  src/
+    qr/                     generateQrToken, validateQrToken
+    link/                   initiateLink, confirmLink, expireLinks, revokeLink
+    chat/                   requestPhotoUploadUrl, getPhotoViewUrl
+    moderation/             blockUser, reportUser
+    lib/                    helpers compartidos (createMemories, cleanupPhotos)
+  test/                     48 tests (Jest + ts-jest)
 
-- HTML monolítico,
-- lógica inline descontrolada,
-- datos hardcodeados,
-- o estructura imposible de escalar.
+firestore.rules             Reglas de seguridad Firestore
+storage.rules               Reglas de seguridad Storage
+firestore.indexes.json      Índices compuestos (anti-abuso)
+firebase.json               Config Firebase (emuladores, deploys)
+docs/superpowers/
+  specs/                    Spec de diseño V1
+  plans/                    4 planes de implementación (históricos)
+index.html                  Prototipo visual original (referencia estética)
+```
 
-### Regla arquitectónica
-Separar siempre mentalmente:
+### Arquitectura
 
-1. **referencia visual**,
-2. **componente de UI**,
-3. **modelo de producto**,
-4. **lógica de negocio**,
-5. **estado temporal**,
-6. **seguridad y moderación**.
+- **Clean Architecture ligera**: cada feature tiene `presentation/` (BLoC/Cubit, pages, widgets), `domain/` (entidades, use cases, interfaces), `data/` (implementaciones Firebase).
+- **State management**: BLoC + Cubit. Estados usan `Equatable`.
+- **DI**: `injectable` + `get_it`. Generar con `dart run build_runner build --delete-conflicting-outputs`.
+- **Router**: GoRouter con redirect basado en auth state y `hasCard`.
+- **La capa data** es la única que importa Firebase SDK directamente.
+- **Cloud Functions** usan v2 API (`firebase-functions/v2/https`, no el top-level).
+- **Región**: `europe-west1` (set via `setGlobalOptions` en cada archivo).
+
+### Modelo de datos Firestore (implementado)
+
+```
+users/{uid}
+  displayName, photoUrl, genre, orientation, relationshipStatus
+  favoriteSong, favoriteSongUrl       ← canción favorita + link opcional
+  activeQrToken, qrTokenExpiresAt     ← gestionados por Cloud Function
+  fcmToken                            ← token FCM para push notifications
+  hasCard: boolean
+
+links/{linkId}
+  userA, userB, status                ← pending | linked | expired | revoked
+  initiatedBy, pendingExpiresAt
+  linkedAt, expiresAt
+  duration: 12                        ← siempre 12h, set server-side
+  revokedBy, createdAt
+
+links/{linkId}/messages/{msgId}
+  type                                ← text | photo_once
+  senderId, text, photoRef
+  viewedBy: []                        ← array de uids que han visto la foto
+  deletedFromStorage: boolean
+  createdAt
+
+memories/{uid}/cards/{memoryId}
+  otherUserName, otherUserAvatarThumb
+  linkedAt, expiredAt, status
+
+blocks/{uid}/blocked/{blockedUid}
+  blockedAt
+
+reports/{reportId}
+  reporterId, reportedId, category, note, createdAt
+```
+
+### Cloud Functions (10 desplegadas)
+
+| Función | Descripción |
+|---|---|
+| `generateQrToken` | Genera JWT firmado con uid del usuario, TTL 5 min |
+| `validateQrToken` | Verifica JWT, devuelve tarjeta del usuario escaneado |
+| `initiateLink` | Crea link PENDING o completa a LINKED si escaneo mutuo (12h fijo). Anti-abuso: 4 scans/5min por par |
+| `confirmLink` | **Existe pero NO se usa en el flujo actual** (el enlace mutuo es automático en `initiateLink`) |
+| `expireLinks` | Scheduler cada 5 min: expira links LINKED + PENDING, crea memorias, limpia fotos en Storage |
+| `revokeLink` | Participante revoca su propio vínculo |
+| `requestPhotoUploadUrl` | Genera URL firmada para subir foto al chat |
+| `getPhotoViewUrl` | Genera URL firmada (15s TTL), marca `viewedBy`, elimina de Storage si ambos han visto |
+| `blockUser` | Bloquea usuario + revoca link opcionalmente |
+| `reportUser` | Reporta + auto-bloquea |
+
+### Entorno de desarrollo
+
+```bash
+# Flutter (NO está en PATH del sistema)
+"C:/Users/denis/develop/flutter/bin/flutter.bat" <comando>
+
+# Firebase project
+ravecards-dev
+
+# Tests Flutter
+cd ravecards/ && flutter test
+
+# Tests Cloud Functions
+cd functions/ && npm test
+
+# Build Cloud Functions
+cd functions/ && npm run build
+
+# Deploy Cloud Functions
+firebase deploy --only functions
+
+# Deploy reglas
+firebase deploy --only firestore:rules,storage
+
+# Regenerar DI
+cd ravecards/ && dart run build_runner build --delete-conflicting-outputs
+```
+
+### Desviaciones respecto al spec original
+
+El spec técnico (`docs/superpowers/specs/2026-04-07-ravecards-v1-design.md`) fue escrito antes de la implementación. Diferencias:
+
+1. **Duration picker eliminado** — la duración es siempre 12h, configurada server-side en `initiateLink`. El picker de 4h/12h/24h/3d no se implementó.
+2. **`confirmLink` no se usa** — el flujo mutuo es automático dentro de `initiateLink`. La Cloud Function existe desplegada pero ninguna pantalla la invoca.
+3. **`favoriteTheme` → `favoriteSong` + `favoriteSongUrl`** — el campo de la tarjeta se renombró para representar una canción favorita con link opcional a Spotify/YouTube. `CardModel` tiene fallback para leer el campo antiguo.
+4. **`fcmToken` añadido** — campo en `users/{uid}` para notificaciones push FCM. No estaba en el spec original.
 
 ---
 

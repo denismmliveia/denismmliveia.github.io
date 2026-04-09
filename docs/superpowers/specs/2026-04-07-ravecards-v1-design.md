@@ -1,14 +1,25 @@
 # RaveCards V1 — Design Spec
 
 **Fecha:** 2026-04-07  
-**Estado:** En implementación — Plan 1 completo (2026-04-07), Plans 2-4 pendientes
+**Estado:** V1 COMPLETA (2026-04-09)
 
 | Plan | Contenido | Estado |
 |---|---|---|
-| Plan 1 | Foundation + Auth + Card + QR dinámico | ✅ Completo — branch `feat/plan-1-foundation` |
-| Plan 2 | Escaneo QR, validación mutua, ventana 60s, links PENDING/LINKED | Pendiente |
-| Plan 3 | Chat texto + fotos visualización única (hold-to-view, FLAG_SECURE) | Pendiente |
-| Plan 4 | Expiración, memoria mínima, block/report/revoke, anti-abuso, FCM, polish | Pendiente |
+| Plan 1 | Foundation + Auth + Card + QR dinámico | ✅ Completo (2026-04-07) |
+| Plan 2 | Escaneo QR, validación mutua, ventana 60s, links PENDING/LINKED | ✅ Completo (2026-04-08) |
+| Plan 3 | Chat texto + fotos visualización única (hold-to-view, FLAG_SECURE) | ✅ Completo (2026-04-09) |
+| Plan 4 | Expiración, memoria mínima, block/report/revoke, anti-abuso, FCM, polish | ✅ Completo (2026-04-09) |
+
+---
+
+## Notas post-implementación
+
+Este spec fue escrito antes de la implementación. Las siguientes diferencias existen entre el spec y lo que fue construido:
+
+1. **Duration picker eliminado**: La duración es siempre 12h, configurada server-side en `initiateLink`. El picker de 4h/12h/24h/3d no se implementó. `confirmLink` Cloud Function existe pero no se usa en el flujo.
+2. **`favoriteTheme` → `favoriteSong` + `favoriteSongUrl`**: El campo de la tarjeta fue renombrado para representar una canción favorita con link opcional a Spotify/YouTube.
+3. **`fcmToken`**: Campo añadido a `users/{uid}` para notificaciones push FCM (no estaba en el spec original).
+4. **Anti-abuso**: Implementado directamente en `initiateLink` (4 scans/5min por par de usuarios), no como sistema separado.
 
 ---
 
