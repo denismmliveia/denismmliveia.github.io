@@ -254,4 +254,78 @@ describe('initiateLink', () => {
     expect(result.isMutual).toBe(false);
     expect(result.linkId).toBe('new-link-id');
   });
+
+  it('rejects scan when user exceeds global rate limit (20 scans/10min)', async () => {
+    // Create 20 mock link docs representing recent scans by the scanner
+    const twentyDocs = Array.from({ length: 20 }, (_, i) => ({
+      id: `link-${i}`,
+      data: () => ({ initiatedBy: SCANNER_UID }),
+      ref: { update: jest.fn() },
+    }));
+
+    // Override the collection mock for this test to return 20 docs for initiatedBy queries
+    mockFirestore.collection.mockImplementation((col: string): any => {
+      if (col === 'users') {
+        return {
+          doc: jest.fn(() => ({
+            get: jest.fn(async () => mockUserDoc),
+            update: jest.fn(),
+            collection: jest.fn(() => ({
+              doc: jest.fn(() => ({
+                get: jest.fn(async () => ({ exists: false })),
+              })),
+            })),
+          })),
+        };
+      }
+      if (col === 'blocks') {
+        return {
+          doc: jest.fn(() => ({
+            get: jest.fn(async () => ({ exists: false })),
+            collection: jest.fn(() => ({
+              doc: jest.fn(() => ({
+                get: jest.fn(async () => ({ exists: false })),
+              })),
+            })),
+          })),
+        };
+      }
+      // For 'links' collection: use a factory so each query chain has its own filter list
+      const makeChainable = (): any => {
+        const filters: string[] = [];
+        const chain: any = {
+          where: jest.fn((...args: any[]) => {
+            filters.push(args[0]); // track field name
+            return chain;
+          }),
+          get: jest.fn(async () => {
+            // If querying by initiatedBy (global rate limit query), return 20 docs
+            if (filters.includes('initiatedBy')) {
+              return { docs: twentyDocs };
+            }
+            // Per-pair anti-abuse and pending link queries return empty
+            return { docs: [] };
+          }),
+          add: jest.fn(async (data: any) => {
+            lastCreatedLink = data;
+            return { id: 'new-link-id' };
+          }),
+          doc: jest.fn(() => ({
+            get: jest.fn(async () => ({ exists: false })),
+            update: jest.fn(),
+          })),
+        };
+        return chain;
+      };
+      return makeChainable();
+    });
+
+    // Make token match what DB will return
+    const token = makeToken(TARGET_UID);
+    mockActiveQrToken = token;
+    const req = { auth: { uid: SCANNER_UID }, data: { token } } as any;
+
+    const err: any = await initiateLinkHandler(req).catch((e: any) => e);
+    expect(err.code).toBe('not-found');
+  });
 });

@@ -7,6 +7,8 @@ import * as jwt from 'jsonwebtoken';
 setGlobalOptions({ region: 'europe-west1' });
 
 const PENDING_WINDOW_SECONDS = 60;
+const GLOBAL_SCAN_LIMIT = 20;
+const GLOBAL_SCAN_WINDOW_MINUTES = 10;
 
 function getSecret(): string {
   const secret = process.env.QR_SECRET;
@@ -93,6 +95,18 @@ export const initiateLinkHandler = async (
       .get(),
   ]);
   if (recentAB.docs.length + recentBA.docs.length >= 4) {
+    throw new HttpsError('not-found', 'User not found');
+  }
+
+  // 3.6 Global anti-abuse: reject if user has initiated too many scans recently
+  const tenMinAgo = admin.firestore.Timestamp.fromDate(
+    new Date(now.getTime() - GLOBAL_SCAN_WINDOW_MINUTES * 60 * 1000)
+  );
+  const recentByScanner = await db.collection('links')
+    .where('initiatedBy', '==', scannerUid)
+    .where('createdAt', '>=', tenMinAgo)
+    .get();
+  if (recentByScanner.docs.length >= GLOBAL_SCAN_LIMIT) {
     throw new HttpsError('not-found', 'User not found');
   }
 
