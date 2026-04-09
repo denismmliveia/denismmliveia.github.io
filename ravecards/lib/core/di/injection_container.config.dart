@@ -50,6 +50,8 @@ import 'package:ravecards/features/link/domain/usecases/watch_link.dart'
     as _i502;
 import 'package:ravecards/features/link/domain/usecases/watch_my_links.dart'
     as _i843;
+import 'package:ravecards/features/link/presentation/cubit/links_cubit.dart'
+    as _i391;
 import 'package:ravecards/features/scan/data/repositories/scan_repository_impl.dart'
     as _i679;
 import 'package:ravecards/features/scan/domain/repositories/scan_repository.dart'
@@ -118,6 +120,8 @@ extension GetItInjectableX on _i174.GetIt {
         () => _i718.PreviewCard(gh<_i476.ScanRepository>()));
     gh.factory<_i248.ValidateQrToken>(
         () => _i248.ValidateQrToken(gh<_i476.ScanRepository>()));
+    gh.factory<_i391.LinksCubit>(
+        () => _i391.LinksCubit(watchMyLinks: gh<_i843.WatchMyLinks>()));
     gh.factory<_i933.CreateCard>(
         () => _i933.CreateCard(gh<_i816.CardRepository>()));
     gh.factory<_i642.GetCard>(() => _i642.GetCard(gh<_i816.CardRepository>()));
