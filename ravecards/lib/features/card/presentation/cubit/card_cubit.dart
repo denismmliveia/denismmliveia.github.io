@@ -42,7 +42,13 @@ class CardCubit extends Cubit<CardState> {
     emit(CardLoading());
     final result = await _getCard(uid);
     result.fold(
-      (failure) => emit(CardError(failure.message)),
+      (failure) {
+        if (failure.message == 'Tarjeta no encontrada') {
+          emit(CardNotFound());
+        } else {
+          emit(CardError(failure.message));
+        }
+      },
       (card) {
         emit(CardLoaded(card));
         _scheduleQrRefresh(uid);

@@ -18,6 +18,7 @@ class CardLoaded extends CardState {
   List<Object?> get props => [card];
 }
 
+class CardNotFound extends CardState {}
 class CardCreating extends CardState {}
 
 class CardError extends CardState {

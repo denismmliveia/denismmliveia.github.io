@@ -29,6 +29,13 @@ class _MyCardView extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocBuilder<CardCubit, CardState>(
       builder: (context, state) {
+        if (state is CardNotFound) {
+          WidgetsBinding.instance.addPostFrameCallback(
+            (_) => context.go('/create-card'),
+          );
+          return const SizedBox.shrink();
+        }
+
         if (state is CardLoading || state is CardInitial) {
           return const Center(
             child: CircularProgressIndicator(color: AppColors.purple),

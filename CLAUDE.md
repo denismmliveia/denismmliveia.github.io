@@ -1,291 +1,547 @@
-# RaveCards — Guía técnica del worktree plan-1
+# CLAUDE.md — RaveCards
 
-> **Este worktree contiene dos cosas distintas:**
-> 1. `index.html` — prototipo visual HTML original (referencia estética, no arquitectura final)
-> 2. `ravecards/` — app Flutter real (Plan 1 completo) + `functions/` Cloud Functions
+## Propósito de este archivo
 
----
+Este archivo define cómo debe comportarse un agente que trabaje sobre el proyecto **RaveCards**.
 
-## App Flutter — estado actual (Plan 1 completo)
+RaveCards **no** es una tarjeta HTML aislada ni una red social generalista. Es un producto social efímero para entornos de fiesta, centrado en facilitar el intercambio de contacto entre personas que se han conocido físicamente, mediante **escaneo cruzado de QR**, con **chat temporal** y **caducidad total del vínculo**.
 
-**Branch:** `feat/plan-1-foundation`  
-**Flutter:** `C:/Users/denis/develop/flutter/bin/flutter.bat` (3.41.6, Dart 3.7+)  
-**Firebase project:** `ravecards-dev`  
-**Tests:** 18 Flutter passing · 6 Jest/TypeScript passing
+Este documento debe usarse para:
 
-### Estructura del proyecto Flutter (`ravecards/`)
-
-```
-ravecards/lib/
-  main.dart                        ← Firebase init, DI, MaterialApp.router
-  firebase_options.dart            ← generado por FlutterFire CLI
-  core/
-    di/injection_container.dart    ← GetIt + @injectable
-    router/app_router.dart         ← GoRouter con auth guard
-    theme/app_colors.dart          ← tokens: background/#06000F, purple/#B300FF, green/#39FF14
-    theme/app_theme.dart           ← ThemeData dark completo
-    error/failures.dart            ← AuthFailure, CardFailure, ServerFailure, NetworkFailure
-  features/
-    auth/
-      domain/                      ← UserEntity, AuthRepository (interfaz), usecases
-      data/                        ← UserModel, AuthRepositoryImpl (Firebase Auth + Firestore)
-      presentation/cubit/          ← AuthCubit, AuthState (Initial/Loading/OtpSent/Authenticated/Error)
-      presentation/pages/          ← LoginPage, PhoneVerifyPage
-      presentation/widgets/        ← PhoneInputWidget
-    card/
-      domain/                      ← CardEntity (+ copyWith), CardRepository (interfaz), usecases
-      data/                        ← CardModel, CardRepositoryImpl (Firestore + Storage + Functions)
-      presentation/cubit/          ← CardCubit (con Timer auto-refresh 4min), CardState
-      presentation/pages/          ← MyCardPage, CreateCardPage
-      presentation/widgets/        ← RaveCardWidget (grid+glow+dot pulsante), QrDisplayWidget
-
-functions/
-  src/qr/generateQrToken.ts        ← JWT TTL 5min, firebase-functions v2 API
-  test/qr/generateQrToken.test.ts
-```
-
-### Comandos frecuentes
-
-```bash
-# Desde ravecards/
-"C:/Users/denis/develop/flutter/bin/flutter.bat" analyze lib/
-"C:/Users/denis/develop/flutter/bin/flutter.bat" test
-"C:/Users/denis/develop/flutter/bin/dart.bat" run build_runner build --delete-conflicting-outputs
-"C:/Users/denis/develop/flutter/bin/flutter.bat" build apk --debug
-
-# Desde functions/
-npm run build
-npm test
-```
-
-### Decisiones técnicas clave
-
-- **firebase-functions v6** usa API v2: importar desde `firebase-functions/v2/https`, usar `CallableRequest` (no `CallableContext`), secreto via `process.env.QR_SECRET` (no `functions.config()`)
-- **`withOpacity()`** está deprecado → usar `withValues(alpha: x)`
-- **`DropdownButtonFormField.value`** está deprecado → usar `InputDecorator` + `DropdownButton` sin underline
-- **CardCubit.refreshQr** solo actualiza `activeQrToken`, no `qrTokenExpiresAt` (evita race condition con DateTime.now() en tests)
-- **Auth guard** en GoRouter: si no hay usuario Firebase y ruta no es /login o /verify-otp → redirige a /login
-- **Firestore rule** para `/users/{uid}`: owner puede escribir `displayName` y `photoUrl` pero NO `activeQrToken` (solo Cloud Functions)
+- mantener alineado cualquier trabajo técnico o de diseño con la definición real del producto,
+- evitar que el proyecto derive hacia una app de citas genérica o una red social persistente,
+- conservar la identidad visual y experiencial nacida del prototipo original,
+- y delimitar claramente qué es el prototipo actual y qué es el producto completo objetivo.
 
 ---
 
-## Prototipo HTML original — referencia estética
+## Regla madre del proyecto
 
-Tarjeta de presentación digital de uso social. Un solo archivo HTML autocontenido, sin dependencias externas, publicable en GitHub Pages.
+Si una decisión mejora la tecnología pero debilita el ritual social principal, es una mala decisión.
 
-**Archivo de producción:** `index.html` (~400 KB con foto embebida)  
-**URL publicada:** `https://denismmliveia.github.io/`  
-**Foto fuente:** `img/IMG-20260221-WA0040.jpg`
+El ritual social principal de RaveCards es este:
 
----
+1. dos personas se conocen en persona,
+2. muestran sus tarjetas,
+3. escanean ambos QR,
+4. el sistema valida reciprocidad dentro de una ventana breve,
+5. se activa un vínculo temporal,
+6. el chat existe solo durante el tiempo de vida del enlace,
+7. si quieren seguir en contacto, deben salir de RaveCards y darse WhatsApp, Instagram u otro contacto permanente.
 
-## Arquitectura
-
-**Un solo archivo** — HTML + CSS + JS inline. Sin build, sin npm, sin servidor.
-
-**Foto:** Embebida como data URL base64 directamente en el atributo `src` del `<img>`. Hace el archivo grande (~400 KB) pero completamente autónomo.
-
-**QR code:** Librería qrcodejs (~20 KB) minificada e incrustada inline en el `<script>`. Genera el QR a partir de `CARD.card_url` al cargar la página.
-
-**Datos:** Objeto `CARD` al principio del script. Para cambiar contenido, solo tocar ese objeto.
+Todo lo que se construya debe reforzar ese flujo.
 
 ---
 
-## Design tokens
+## Qué es RaveCards
 
-```css
-:root {
-  --bg:     #06000f;   /* fondo negro-púrpura profundo */
-  --purple: #b300ff;   /* acento neón — bordes, labels, glow */
-  --green:  #39ff14;   /* valores de campos, status dot */
-  --white:  #ffffff;   /* nombre / texto principal */
-}
-```
+RaveCards es:
 
-Para cambiar la paleta, editar estos 4 valores en `:root`. Todo lo demás usa variables.
+- una herramienta social efímera para fiestas, raves, clubes y festivales,
+- una forma suave, rápida y juguetona de compartir contacto,
+- una interfaz pensada para música alta, poca luz y atención fragmentada,
+- un sistema de **encuentro verificado presencialmente**,
+- y un producto que termina casi por completo cuando termina el momento.
 
----
+RaveCards **no** es:
 
-## Objeto CARD — datos configurables
+- una red social de uso diario,
+- una agenda de contactos permanente,
+- una app de mensajería general,
+- un feed,
+- un directorio de gente cercana,
+- ni un clon de Tinder, Instagram o WhatsApp.
 
-```js
-var CARD = {
-  name:        "DENIS",
-  tagline:     "Techno Enthusiast · 2026",
-  genero_fav:  "Hard Techno",
-  orientacion: "TODO",          // rellenar antes de publicar
-  estado:      "TODO",          // rellenar antes de publicar
-  card_url:    "https://denismmliveia.github.io/"
-};
-```
-
-El HTML se rellena con `document.getElementById` al cargar. Para añadir un campo: añadir propiedad al objeto + `<span id="nuevo">` en el HTML + línea `document.getElementById('nuevo').textContent = CARD.nuevo`.
+La gente puede usarlo para ligar. Eso se asume. Pero el producto no debe diseñarse ni posicionarse como una app de citas clásica.
 
 ---
 
-## Layout
+## Estado actual del proyecto
 
-```
-.card (max-width: 420px, centrado)
-├── .bg-grid          ← grid de líneas CSS (decorativo, pointer-events: none)
-├── .bg-glow          ← radial-gradient púrpura (decorativo, pointer-events: none)
-├── .top-bar          ← "RAVE CARD" + "● Online"
-├── .photo-wrap > img ← 104×104px circular, border + glow púrpura
-├── .name             ← nombre uppercase, text-shadow neón
-├── .tagline          ← subtítulo pequeño
-├── .fields           ← lista de campos
-│   └── .field (×N)  ← label + value, barra izquierda púrpura (::before)
-├── .divider          ← línea gradiente
-└── .qr-section
-    ├── .qr-label
-    └── #qr-container ← QR generado por qrcodejs, o .qr-placeholder si URL es TODO
-```
+### Estado actual real
 
----
+Actualmente existe un **prototipo visual de tarjeta** en un único archivo HTML autocontenido.
 
-## Efectos visuales
+Ese prototipo sirve para:
 
-### Status dot (pulso continuo)
-```css
-@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
-.status-dot { animation: pulse 2s infinite; }
-```
+- capturar la estética,
+- probar la presencia visual de la tarjeta,
+- validar tono,
+- y conservar una referencia concreta del “objeto social” que inspiró el producto.
 
-### Boot sequence (aparición al cargar)
-```css
-@keyframes bootIn {
-  from { opacity: 0; transform: translateY(8px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-/* Cada elemento tiene animation-delay diferente */
-.bg-grid    { opacity: 0; animation: bootIn 0.5s 0.1s  ease forwards; }
-.top-bar    { opacity: 0; animation: bootIn 0.4s 0.3s  ease forwards; }
-.photo-wrap { opacity: 0; animation: bootIn 0.5s 0.5s  ease forwards; }
-.name       { opacity: 0; animation: bootIn 0.4s 0.7s  ease forwards; }
-/* ... etc */
-```
+### Lo que ese prototipo no es
 
-La clave es `animation-fill-mode: forwards` (via `ease forwards`) para que queden visibles al terminar.
+Ese HTML actual **no representa la arquitectura final del producto**.
 
-### Glow en foto
-```css
-box-shadow: 0 0 20px rgba(179,0,255,0.5), 0 0 48px rgba(179,0,255,0.2);
-```
+No debe tomarse como:
 
-### Grid de fondo
-```css
-background-image:
-  linear-gradient(rgba(179,0,255,0.06) 1px, transparent 1px),
-  linear-gradient(90deg, rgba(179,0,255,0.06) 1px, transparent 1px);
-background-size: 28px 28px;
-```
+- arquitectura definitiva,
+- modelo real de datos de backend,
+- flujo completo de RaveCards,
+- ni implementación funcional de la lógica de enlace mutuo, chat temporal, caducidad, seguridad o moderación.
+
+### Cómo debe interpretarse
+
+El prototipo HTML debe tratarse como:
+
+- **referencia visual y experiencial**, no como sistema final,
+- punto de partida para lenguaje visual y tono,
+- y objeto útil para demos rápidas, exploración visual y validación de sensación de producto.
 
 ---
 
-## Accesibilidad
+## Principios no negociables
 
-```css
-@media (prefers-reduced-motion: reduce) {
-  .status-dot { animation: none; opacity: 1; }
-  .bg-grid, .bg-glow, .top-bar, .photo-wrap, .name, .tagline,
-  .fields .field, .divider, .qr-section {
-    animation: none; opacity: 1;
-  }
-}
-```
+### 1. Solo encuentros en persona
+No debe existir conexión si no ha habido encuentro presencial.
 
-Siempre añadir `pointer-events: none` a `.bg-grid` y `.bg-glow` — sin esto bloquean los clics.
+### 2. Reciprocidad obligatoria
+No basta con un escaneo unilateral. Debe haber escaneo cruzado.
 
----
+### 3. Ventana breve y explícita
+La reciprocidad ocurre dentro de una ventana corta de tiempo.
 
-## Embeber la foto como base64
+**En la definición actual del producto la ventana es de 60 segundos.**
 
-```python
-import base64
-with open('img/foto.jpg', 'rb') as f:
-    data = base64.b64encode(f.read()).decode()
-src = 'data:image/jpeg;base64,' + data
-# Pegar src en el atributo src del <img id="photo">
-```
+### 4. Ephemeral by design
+Todo vínculo activo debe caducar:
 
-O desde bash:
-```bash
-python -c "
-import base64
-with open('img/foto.jpg','rb') as f: d=base64.b64encode(f.read()).decode()
-print('data:image/jpeg;base64,'+d)
-" > foto_b64.txt
-```
+- acceso a tarjeta,
+- chat,
+- enlace,
+- visibilidad activa.
 
----
+### 5. Persistencia mínima
+Tras la caducidad solo puede quedar un recuerdo mínimo. Nunca un sustituto de agenda de contactos.
 
-## QR code — qrcodejs
+### 6. Sin descubrimiento artificial
+No debe haber en V1:
 
-La librería qrcodejs (MIT, ~20 KB minificada) se pega inline en el `<script>`. Uso:
+- feed,
+- explorar usuarios,
+- perfiles sugeridos,
+- sistema de “gente cerca”,
+- ranking,
+- matching algorítmico.
 
-```js
-// Guard: solo genera QR si la URL está definida
-if (CARD.card_url.indexOf('TODO') === -1) {
-  document.getElementById('qr-container').innerHTML = '';
-  new QRCode(document.getElementById('qr-container'), {
-    text:         CARD.card_url,
-    width:        96,
-    height:       96,
-    colorDark:    '#ffffff',   // blanco sobre fondo oscuro — contraste 20.7:1
-    colorLight:   '#06000f',
-    correctLevel: QRCode.CorrectLevel.M
-  });
-}
-```
+### 7. Tono juguetón
+La experiencia debe sentirse ligera, casi coleccionable, no solemne ni corporativa.
 
-Si `card_url` contiene "TODO", se muestra `.qr-placeholder` con texto "URL pendiente".
-
-Fuente del minificado: `https://github.com/davidshimjs/qrcodejs` — pegar el contenido de `qrcode.min.js` inline antes del código de la tarjeta.
+### 8. Foco extremo
+Si una funcionalidad amplía el alcance pero debilita la claridad del producto, se rechaza.
 
 ---
 
-## Publicación en GitHub Pages
+## Experiencia núcleo que hay que proteger
 
-```bash
-# 1. Crear repo público en GitHub (ej: usuario.github.io o rave-card)
-git remote add origin https://github.com/USUARIO/REPO.git
-git branch -m master main   # si la rama local es master
-git push -u origin main
+La app debe resolver mejor que los métodos actuales este momento:
 
-# Si el repo ya tiene commits (README creado por GitHub):
-git pull origin main --allow-unrelated-histories --strategy-option=ours
-git push origin main
-```
+> conocer a alguien en una fiesta y querer mantener un canal breve de contacto sin tener que deletrear un nick entre altavoces.
 
-En GitHub: **Settings → Pages → Branch: main → / (root) → Save**
+Eso significa que toda pantalla, animación, copy y decisión técnica debe favorecer:
 
-URL resultante:
-- Repo `usuario.github.io` → `https://usuario.github.io/`
-- Repo `rave-card` → `https://usuario.github.io/rave-card/`
+- rapidez,
+- claridad,
+- baja presión social,
+- y sensación de ritual compartido.
 
----
+No diseñar para “retención por retención”.
+No diseñar para “más tiempo de uso”.
+No diseñar para “adictividad”.
 
-## Adaptar a otro tema/persona
-
-Para hacer una tarjeta diferente (festival, gaming, networking):
-
-1. **Paleta** — cambiar los 4 tokens en `:root`
-2. **Foto** — embeber nueva imagen como base64
-3. **Objeto CARD** — cambiar name, tagline, campos y sus labels
-4. **card_url** — URL de la nueva publicación
-5. **Campos extra** — añadir propiedades en CARD + `<div class="field">` en HTML + línea JS
-6. **Eliminar campos** — borrar la fila `.field` del HTML (el JS es tolerante a IDs inexistentes)
-
-Los efectos (boot sequence, glow, grid) son independientes del contenido — funcionan sin tocar CSS.
+Diseñar para **que el momento salga bien**.
 
 ---
 
-## Checklist antes de publicar
+## Relación entre el prototipo de tarjeta y el producto completo
 
-- [ ] `CARD.orientacion` con valor real (no "TODO")
-- [ ] `CARD.estado` con valor real (no "TODO")
-- [ ] `CARD.card_url` con URL definitiva
-- [ ] QR visible y escaneable en móvil
-- [ ] Boot sequence visible al recargar
-- [ ] Sin scroll horizontal en 375px
-- [ ] Funciona offline (sin conexión a internet)
+### Rol del prototipo
+La tarjeta HTML actual representa la **unidad visual básica de identidad temporal**.
+
+### Rol del producto completo
+El producto completo añade por encima:
+
+- autenticación,
+- gestión de usuario,
+- tarjeta activa,
+- QR dinámico,
+- flujo de escaneo cruzado,
+- ventana de 60 segundos,
+- validación backend,
+- enlace temporal,
+- chat 1 a 1,
+- revocación,
+- bloqueo,
+- reporte,
+- caducidad,
+- y recuerdo mínimo tras expiración.
+
+### Regla de diseño importante
+Cuando haya tensión entre “mantener el HTML autocontenido original” y “construir bien RaveCards como producto”, debe priorizarse el producto.
+
+El HTML original es importante. Pero no manda sobre la lógica del sistema final.
+
+---
+
+## Identidad de usuario
+
+RaveCards no usa un perfil social tradicional. Usa una **persona-evento** o alter ego fiestero.
+
+### Campos base definidos actualmente
+La tarjeta debe contemplar al menos estos campos:
+
+- imagen de perfil,
+- nombre visible elegido por el usuario,
+- género favorito,
+- orientación,
+- estado civil,
+- tema o género favorito.
+
+### Regla de naming
+El nombre visible puede ser:
+
+- nombre real,
+- alias,
+- nickname,
+- o cualquier identificador elegido por el usuario.
+
+No imponer real-name policy en V1.
+
+### Filosofía de identidad
+La tarjeta no pretende describir toda la persona.
+La tarjeta solo debe comunicar:
+
+- reconocimiento,
+- vibra,
+- contexto,
+- y un mínimo de información útil para el momento.
+
+---
+
+## QR y vinculación
+
+### Regla funcional
+Un vínculo solo nace si:
+
+1. A escanea a B,
+2. se abre una ventana de 60 segundos,
+3. B escanea a A dentro de esa ventana,
+4. el sistema valida ambos eventos,
+5. se activa el enlace.
+
+### Reescaneo
+- Si se reescanea dentro de la misma ventana, no debe ocurrir nada raro ni romperse el flujo.
+- Si se escanea fuera de ventana, se abre una nueva ventana de 60 segundos.
+
+### Estado pendiente
+Durante la espera debe mostrarse un mensaje juguetón indicando que la otra persona debe escanear también.
+
+### Recomendación técnica
+El QR del producto debe ser **dinámico** o basado en token temporal.
+
+No por paranoia de película, sino porque encaja mejor con:
+
+- presencia física,
+- seguridad mínima razonable,
+- prevención de reutilización torpe de capturas,
+- y coherencia con la naturaleza efímera del sistema.
+
+### Prohibición importante
+Nunca implementar un sistema en el que un solo usuario pueda adquirir el contacto funcional de otro sin reciprocidad real.
+
+---
+
+## Chat
+
+### Regla actual del producto
+El chat es:
+
+- 1 a 1,
+- temporal,
+- dependiente del enlace,
+- y no se puede reabrir una vez caducado.
+
+### Intención del chat
+El chat no es el destino principal del producto.
+El chat es la prolongación breve del encuentro.
+
+### Restricción de diseño
+No diseñar el chat como si fuera el centro de la aplicación.
+Debe sentirse claramente subordinado al vínculo temporal.
+
+### Futuro posible
+Fotos de visualización única pueden ser una ampliación razonable, pero no deben alterar la simplicidad de V1.
+
+---
+
+## Caducidad
+
+### Regla
+Cuando caduca el enlace, caduca todo lo activo:
+
+- acceso a la tarjeta viva,
+- chat,
+- estado del vínculo,
+- posibilidad de seguir interactuando dentro de la app.
+
+### Filosofía
+La caducidad no es una limitación artificial de negocio.
+La caducidad es parte del producto.
+
+### No hacer
+- no reabrir chats caducados,
+- no restaurar enlaces,
+- no convertir automáticamente un encuentro temporal en contacto permanente,
+- no construir “backdoors” que traicionen la efimeridad.
+
+---
+
+## Memoria mínima
+
+Después de expirar, puede quedar un recuerdo mínimo.
+
+Ese recuerdo existe para preservar la sensación de noche vivida, no para reemplazar una agenda.
+
+### Debe ser mínimo
+Puede incluir cosas como:
+
+- nombre visible,
+- miniatura o rastro visual,
+- fecha,
+- estado caducado,
+- y en el futuro quizá referencia al evento.
+
+### No debe permitir
+- reabrir contacto,
+- seguir chateando,
+- reconstruir una red social estable,
+- ni convertir RaveCards en archivo histórico de personas.
+
+---
+
+## Seguridad y moderación
+
+Aunque el tono sea divertido, el control debe ser serio.
+
+### Debe existir desde V1
+- cortar vínculo,
+- bloquear,
+- reportar.
+
+### Principio
+La seguridad no debe depender del buen comportamiento idealizado del usuario.
+
+### Antiabuso
+Si hay patrones de escaneos unilaterales repetidos, el sistema puede aplicar:
+
+- límites de frecuencia,
+- fricción adicional,
+- señales internas de abuso,
+- o restricciones temporales.
+
+No hacer castigos teatrales de cara al usuario salvo que aporten valor real.
+
+---
+
+## Descubrimiento y alcance
+
+### V1 no incluye
+- feed,
+- exploración de perfiles,
+- cercanía por geolocalización,
+- recomendaciones,
+- matching automático,
+- ni browsing de personas.
+
+### Alcance contextual
+La V1 está pensada 100% para ambiente de fiesta.
+
+No hace falta geofencing obligatorio en la primera versión.
+La cultura de uso puede preceder a la restricción técnica.
+
+---
+
+## Línea visual del proyecto
+
+La estética visual original del prototipo debe considerarse **referencia fundacional**.
+
+### Rasgos que deben preservarse
+- fondo oscuro negro-púrpura,
+- acentos neón,
+- sensación techno / rave,
+- grid sutil,
+- glow contenido,
+- identidad nocturna,
+- tono visual entre credencial, collectible y objeto digital de club.
+
+### Tono visual a evitar
+- corporativo,
+- lifestyle genérico,
+- dating app de catálogo,
+- neón chillón sin criterio,
+- sci-fi militar,
+- ni tarjeta de visita seria disfrazada.
+
+### Estado de theming
+En V1 hay **una estética fija**.
+
+No introducir un sistema de skins, temas por usuario o temas por evento salvo que se pida explícitamente en una fase posterior.
+
+---
+
+## Prototipo HTML actual: reglas de conservación
+
+El prototipo actual de tarjeta puede seguir existiendo como pieza autocontenida.
+
+### Mantener si se trabaja sobre el HTML demo
+- archivo sencillo y portable,
+- HTML/CSS/JS comprensibles,
+- visual fuerte,
+- carga inmediata,
+- QR visible,
+- animaciones suaves,
+- y compatibilidad móvil correcta.
+
+### No confundir con el producto
+Si se edita el HTML demo, dejar claro si el cambio afecta a:
+
+- solo demo visual,
+- solo diseño de la tarjeta,
+- o definición del producto completo.
+
+### Regla importante
+No introducir en el HTML demo comportamientos falsos que sugieran que ya existe lógica real de backend cuando no existe.
+
+Si algo es simulación visual, debe seguir siendo claramente demo o prototipo.
+
+---
+
+## Código y arquitectura: criterio general
+
+### Para prototipos
+Se permite simplicidad extrema si el objetivo es:
+
+- demo visual,
+- exploración UX,
+- prueba de concepto,
+- validación rápida.
+
+### Para producto real
+No trasladar sin pensar las decisiones del demo al producto final.
+
+Evitar que el sistema real nazca atado a:
+
+- HTML monolítico,
+- lógica inline descontrolada,
+- datos hardcodeados,
+- o estructura imposible de escalar.
+
+### Regla arquitectónica
+Separar siempre mentalmente:
+
+1. **referencia visual**,
+2. **componente de UI**,
+3. **modelo de producto**,
+4. **lógica de negocio**,
+5. **estado temporal**,
+6. **seguridad y moderación**.
+
+---
+
+## Qué no debe hacer un agente en este proyecto
+
+Un agente no debe:
+
+- convertir el producto en una red social persistente,
+- añadir feeds o exploración de usuarios por iniciativa propia,
+- inventar features de retención que traicionen la idea,
+- meter monetización en la mecánica central,
+- sustituir el escaneo cruzado por aceptación unilateral,
+- cambiar la filosofía de caducidad sin instrucción explícita,
+- ni banalizar la seguridad porque “es solo una app para fiestas”.
+
+Tampoco debe:
+
+- rehacer el tono como si esto fuera una startup SaaS,
+- meter lenguaje corporativo,
+- ni suavizar tanto el concepto que pierda su personalidad.
+
+---
+
+## Qué sí debe hacer un agente
+
+Un agente debe:
+
+- proteger el foco del producto,
+- mantener coherencia entre diseño, UX y reglas del sistema,
+- distinguir demo de producto,
+- proponer simplificaciones inteligentes,
+- detectar scope creep,
+- señalar contradicciones con la definición de RaveCards,
+- y favorecer soluciones rápidas, claras y jugables.
+
+Cuando haya duda, priorizar:
+
+1. claridad,
+2. reciprocidad,
+3. efimeridad,
+4. seguridad,
+5. identidad visual,
+6. simplicidad de uso.
+
+---
+
+## Checklist de validación antes de aceptar cambios
+
+Antes de aceptar una propuesta, cambio o implementación, comprobar:
+
+- [ ] ¿Refuerza el encuentro en persona?
+- [ ] ¿Respeta el escaneo cruzado?
+- [ ] ¿Mantiene la ventana breve de reciprocidad?
+- [ ] ¿Preserva la naturaleza efímera del vínculo?
+- [ ] ¿Evita crear una red persistente disfrazada?
+- [ ] ¿Mantiene el tono juguetón y fiestero?
+- [ ] ¿No convierte el producto en una app de citas genérica?
+- [ ] ¿No añade complejidad gratuita?
+- [ ] ¿Es coherente con una V1 enfocada en fiesta?
+- [ ] ¿Distingue correctamente demo visual de sistema real?
+
+Si varias respuestas son “no”, el cambio probablemente va en mala dirección.
+
+---
+
+## Prototipo original: referencia concreta a conservar
+
+El prototipo original aporta varias decisiones útiles que deben conservarse como referencia base:
+
+- tarjeta centrada y compacta,
+- top bar con identidad de tarjeta activa,
+- foto circular con glow,
+- campos expresivos y cortos,
+- QR visible como pieza central de acción,
+- animación de entrada tipo boot sequence,
+- y estética oscura con neón púrpura y verde.
+
+Esas decisiones siguen siendo valiosas aunque la arquitectura final del producto ya no sea un HTML único publicado en GitHub Pages.
+
+---
+
+## Resumen operativo
+
+Si trabajas en este proyecto, actúa como si RaveCards fuera una mezcla entre:
+
+- un ritual social efímero,
+- una credencial digital de noche,
+- y una herramienta ligera de continuidad tras el encuentro.
+
+No actúes como si estuvieras construyendo:
+
+- una red social clásica,
+- una app de citas pura,
+- o una plataforma de mensajería general.
+
+La calidad del proyecto depende menos de cuántas funciones tenga y más de que el núcleo salga fino.
+
+Y el núcleo es simple:
+
+**conocerse, escanearse, enlazarse, hablar un rato, y desaparecer a tiempo.**
