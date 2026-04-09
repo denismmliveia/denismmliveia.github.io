@@ -49,7 +49,7 @@ class CardRepositoryImpl implements CardRepository {
     try {
       // 1. Subir foto a Storage
       final ref = _storage.ref('profiles/$uid/avatar.jpg');
-      await ref.putFile(photo);
+      await ref.putFile(photo, SettableMetadata(contentType: 'image/jpeg'));
       final photoUrl = await ref.getDownloadURL();
 
       // 2. Guardar tarjeta en Firestore
