@@ -7,30 +7,55 @@ const TEST_UID = 'user-uid-123';
 // Set environment variable before module load
 process.env.QR_SECRET = TEST_SECRET;
 
-// Mock firebase-admin
-jest.mock('firebase-admin', () => ({
-  firestore: Object.assign(
-    jest.fn(() => ({
-      collection: jest.fn(() => ({
+// Mock firebase-admin with collection-aware routing
+jest.mock('firebase-admin', () => {
+  // Mutable state to control test behavior
+  let activeQrTokenInDb: string | null = null;
+
+  const mockFirestore = jest.fn(() => ({
+    collection: jest.fn((col: string) => {
+      if (col === 'users') {
+        return {
+          doc: jest.fn(() => ({
+            update: jest.fn().mockResolvedValue(undefined),
+            get: jest.fn(async () => ({
+              exists: activeQrTokenInDb !== null,
+              data: () =>
+                activeQrTokenInDb !== null
+                  ? { activeQrToken: activeQrTokenInDb }
+                  : undefined,
+            })),
+          })),
+        };
+      }
+      // 'blocks' collection
+      return {
         doc: jest.fn(() => ({
-          update: jest.fn().mockResolvedValue(undefined),
           collection: jest.fn(() => ({
             doc: jest.fn(() => ({
               get: jest.fn().mockResolvedValue({ exists: false }),
             })),
           })),
         })),
-      })),
-    })),
-    {
+      };
+    }),
+  }));
+
+  return {
+    firestore: Object.assign(mockFirestore, {
       Timestamp: {
         fromDate: jest.fn((d: Date) => ({ toDate: () => d })),
       },
       FieldValue: { serverTimestamp: jest.fn() },
-    }
-  ),
-  initializeApp: jest.fn(),
-}));
+    }),
+    initializeApp: jest.fn(),
+    _testHelpers: {
+      setActiveQrToken: (token: string | null) => {
+        activeQrTokenInDb = token;
+      },
+    },
+  };
+});
 
 // Mock firebase-functions/v2/https
 jest.mock('firebase-functions/v2/https', () => ({
@@ -83,12 +108,22 @@ describe('generateQrToken', () => {
 describe('validateQrToken', () => {
   const mockRequest = { auth: { uid: 'scanner-uid' } } as any;
 
-  it('should return uid when token is valid', async () => {
+  beforeEach(() => {
+    // Reset DB state before each test
+    const admin = require('firebase-admin');
+    admin._testHelpers.setActiveQrToken(null);
+  });
+
+  it('should return uid when token is valid and matches DB', async () => {
     const validToken = jwt.sign(
       { uid: TEST_UID, issuedAt: Math.floor(Date.now() / 1000) },
       TEST_SECRET,
       { expiresIn: 300 }
     );
+
+    // Set the DB to have this exact token
+    const admin = require('firebase-admin');
+    admin._testHelpers.setActiveQrToken(validToken);
 
     const result = await validateQrTokenHandler({ ...mockRequest, data: { token: validToken } });
 
@@ -97,7 +132,10 @@ describe('validateQrToken', () => {
   });
 
   it('should return invalid for tampered token', async () => {
-    const result = await validateQrTokenHandler({ ...mockRequest, data: { token: 'invalid.token.here' } });
+    const result = await validateQrTokenHandler({
+      ...mockRequest,
+      data: { token: 'invalid.token.here' },
+    });
     expect(result.valid).toBe(false);
   });
 
@@ -109,6 +147,36 @@ describe('validateQrToken', () => {
     );
 
     const result = await validateQrTokenHandler({ ...mockRequest, data: { token: selfToken } });
+    expect(result.valid).toBe(false);
+  });
+
+  it('should return invalid when token does not match activeQrToken in DB', async () => {
+    const staleToken = jwt.sign(
+      { uid: TEST_UID, issuedAt: Math.floor(Date.now() / 1000) },
+      TEST_SECRET,
+      { expiresIn: 300 }
+    );
+
+    // DB has a DIFFERENT token (user generated a new one)
+    const admin = require('firebase-admin');
+    admin._testHelpers.setActiveQrToken('different-token-in-db');
+
+    const result = await validateQrTokenHandler({ ...mockRequest, data: { token: staleToken } });
+    expect(result.valid).toBe(false);
+  });
+
+  it('should return invalid when user document does not exist', async () => {
+    const validToken = jwt.sign(
+      { uid: TEST_UID, issuedAt: Math.floor(Date.now() / 1000) },
+      TEST_SECRET,
+      { expiresIn: 300 }
+    );
+
+    // activeQrTokenInDb === null means user doc won't exist
+    const admin = require('firebase-admin');
+    admin._testHelpers.setActiveQrToken(null);
+
+    const result = await validateQrTokenHandler({ ...mockRequest, data: { token: validToken } });
     expect(result.valid).toBe(false);
   });
 });

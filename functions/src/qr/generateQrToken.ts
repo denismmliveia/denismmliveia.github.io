@@ -55,9 +55,21 @@ export const validateQrTokenHandler = async (
       return { valid: false };
     }
 
+    const db = admin.firestore();
+
+    // Verificar que el token presentado coincide con el activeQrToken actual en BD
+    // Previene ataques de replay con QRs capturados/fotografiados
+    const userDoc = await db.collection('users').doc(decoded.uid).get();
+    if (!userDoc.exists) {
+      return { valid: false };
+    }
+    const userData = userDoc.data()!;
+    if (userData.activeQrToken !== request.data.token) {
+      return { valid: false };
+    }
+
     // Verificar que el escaneado no ha bloqueado al escaneador
-    const blockDoc = await admin
-      .firestore()
+    const blockDoc = await db
       .collection('blocks')
       .doc(decoded.uid)
       .collection('blocked')
