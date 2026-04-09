@@ -54,7 +54,17 @@ class _LinksView extends StatelessWidget {
       ),
     );
     if (confirmed == true && context.mounted) {
-      await sl<RevokeLink>().call(linkId);
+      final result = await sl<RevokeLink>().call(linkId);
+      if (context.mounted) {
+        result.fold(
+          (f) => ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+                content: Text(f.message),
+                backgroundColor: AppColors.error),
+          ),
+          (_) {},
+        );
+      }
     }
   }
 
@@ -84,7 +94,18 @@ class _LinksView extends StatelessWidget {
       ),
     );
     if (confirmed == true && context.mounted) {
-      await sl<BlockUser>().call(targetUid: targetUid, linkId: linkId);
+      final result =
+          await sl<BlockUser>().call(targetUid: targetUid, linkId: linkId);
+      if (context.mounted) {
+        result.fold(
+          (f) => ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+                content: Text(f.message),
+                backgroundColor: AppColors.error),
+          ),
+          (_) {},
+        );
+      }
     }
   }
 
@@ -144,8 +165,18 @@ class _LinksView extends StatelessWidget {
       ),
     );
     if (confirmed == true && selectedReason != null && context.mounted) {
-      await sl<ReportUser>()
+      final result = await sl<ReportUser>()
           .call(targetUid: targetUid, reason: selectedReason!, linkId: linkId);
+      if (context.mounted) {
+        result.fold(
+          (f) => ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+                content: Text(f.message),
+                backgroundColor: AppColors.error),
+          ),
+          (_) {},
+        );
+      }
     }
   }
 

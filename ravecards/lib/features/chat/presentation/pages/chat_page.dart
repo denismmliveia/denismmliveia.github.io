@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_windowmanager_plus/flutter_windowmanager_plus.dart';
 import '../../../../core/di/injection_container.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../../../link/domain/entities/link_entity.dart';
 import '../../../link/presentation/widgets/countdown_widget.dart';
 import '../../../moderation/domain/usecases/revoke_link.dart';
@@ -79,14 +80,23 @@ class _ChatPageState extends State<ChatPage> {
           TextButton(
             onPressed: () => nav.pop(true),
             child: const Text('Revocar',
-                style: TextStyle(color: Color(0xFFFF3B30))),
+                style: TextStyle(color: AppColors.error)),
           ),
         ],
       ),
     );
     if (confirmed == true && mounted) {
-      await sl<RevokeLink>().call(widget.linkId);
-      if (mounted) nav.pop();
+      final result = await sl<RevokeLink>().call(widget.linkId);
+      if (mounted) {
+        result.fold(
+          (f) => ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+                content: Text(f.message),
+                backgroundColor: AppColors.error),
+          ),
+          (_) => nav.pop(),
+        );
+      }
     }
   }
 
@@ -99,7 +109,7 @@ class _ChatPageState extends State<ChatPage> {
         title: const Text('Bloquear usuario',
             style: TextStyle(color: Colors.white)),
         content: const Text(
-          'Esta persona no podrá verte ni escanearte.',
+          'Esta persona no podrá verte ni escanearte. El vínculo actual también se revocará.',
           style: TextStyle(color: Colors.white70),
         ),
         actions: [
@@ -111,15 +121,24 @@ class _ChatPageState extends State<ChatPage> {
           TextButton(
             onPressed: () => nav.pop(true),
             child: const Text('Bloquear',
-                style: TextStyle(color: Color(0xFFFF3B30))),
+                style: TextStyle(color: AppColors.error)),
           ),
         ],
       ),
     );
     if (confirmed == true && mounted) {
-      await sl<BlockUser>()
+      final result = await sl<BlockUser>()
           .call(targetUid: targetUid, linkId: widget.linkId);
-      if (mounted) nav.pop();
+      if (mounted) {
+        result.fold(
+          (f) => ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+                content: Text(f.message),
+                backgroundColor: AppColors.error),
+          ),
+          (_) => nav.pop(),
+        );
+      }
     }
   }
 
@@ -150,7 +169,7 @@ class _ChatPageState extends State<ChatPage> {
                             children: [
                               Radio<String>(
                                 value: r,
-                                activeColor: const Color(0xFFB300FF),
+                                activeColor: AppColors.purple,
                               ),
                               Text(r,
                                   style: const TextStyle(
@@ -173,18 +192,27 @@ class _ChatPageState extends State<ChatPage> {
                   ? null
                   : () => Navigator.of(ctx).pop(true),
               child: const Text('Reportar',
-                  style: TextStyle(color: Color(0xFFFF3B30))),
+                  style: TextStyle(color: AppColors.error)),
             ),
           ],
         ),
       ),
     );
     if (confirmed == true && selectedReason != null && mounted) {
-      await sl<ReportUser>().call(
+      final result = await sl<ReportUser>().call(
           targetUid: targetUid,
           reason: selectedReason!,
           linkId: widget.linkId);
-      if (mounted) nav.pop();
+      if (mounted) {
+        result.fold(
+          (f) => ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+                content: Text(f.message),
+                backgroundColor: AppColors.error),
+          ),
+          (_) => nav.pop(),
+        );
+      }
     }
   }
 
@@ -313,7 +341,7 @@ class _ChatPageState extends State<ChatPage> {
                   PopupMenuItem(
                     value: 'report',
                     child: Text('Reportar',
-                        style: TextStyle(color: Color(0xFFFF3B30))),
+                        style: TextStyle(color: AppColors.error)),
                   ),
                 ],
               ),
