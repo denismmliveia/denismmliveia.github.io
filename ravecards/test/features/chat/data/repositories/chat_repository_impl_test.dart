@@ -129,6 +129,7 @@ void main() {
     });
 
     test('returns displayName and photoUrl', () async {
+      when(() => userSnapshot.exists).thenReturn(true);
       when(() => userSnapshot.data()).thenReturn({
         'displayName': 'Bob',
         'photoUrl': 'https://example.com/bob.jpg',
@@ -143,12 +144,48 @@ void main() {
       });
     });
 
+    test('returns ChatFailure when document does not exist', () async {
+      when(() => userSnapshot.exists).thenReturn(false);
+      when(() => userSnapshot.data()).thenReturn(null);
+
+      final result = await repo.getOtherUserProfile('uid-bob');
+
+      expect(result.isLeft(), isTrue);
+    });
+
     test('returns ChatFailure on Firestore error', () async {
       when(() => userDoc.get()).thenThrow(Exception('not found'));
 
       final result = await repo.getOtherUserProfile('uid-bob');
 
       expect(result.isLeft(), isTrue);
+    });
+  });
+
+  group('sendText — edge cases', () {
+    test('returns ChatFailure when currentUser is null', () async {
+      when(() => auth.currentUser).thenReturn(null);
+
+      final result = await repo.sendText('link-1', 'Hola');
+
+      expect(result.isLeft(), isTrue);
+    });
+  });
+
+  group('watchMessages — edge cases', () {
+    test('emits Left(ChatFailure) when Firestore stream emits an error', () async {
+      final controller = StreamController<QuerySnapshot<Map<String, dynamic>>>();
+      when(() => limitedQuery.snapshots()).thenAnswer((_) => controller.stream);
+
+      final stream = repo.watchMessages('link-1');
+
+      // Collect the first emission after adding an error
+      final future = stream.first;
+      controller.addError(Exception('Firestore unavailable'));
+
+      final result = await future;
+      expect(result.isLeft(), isTrue);
+      await controller.close();
     });
   });
 }

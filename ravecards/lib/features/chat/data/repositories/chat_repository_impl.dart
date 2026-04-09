@@ -32,30 +32,42 @@ class ChatRepositoryImpl implements ChatRepository {
 
   @override
   Stream<Either<Failure, List<MessageEntity>>> watchMessages(String linkId) {
-    return _messagesRef(linkId)
+    final source = _messagesRef(linkId)
         .orderBy('createdAt', descending: false)
         .limit(100)
-        .snapshots()
-        .map<Either<Failure, List<MessageEntity>>>((snapshot) {
-      try {
-        final messages = snapshot.docs
-            .map((doc) => MessageModel.fromFirestore(doc))
-            .toList();
-        return Right(messages);
-      } catch (e) {
-        return Left(ChatFailure('Failed to parse messages: $e'));
-      }
-    }).handleError(
-      (Object e) => Left<Failure, List<MessageEntity>>(ChatFailure(e.toString())),
-    );
+        .snapshots();
+
+    return Stream.multi((controller) {
+      source.listen(
+        (snapshot) {
+          try {
+            final messages = snapshot.docs
+                .map((doc) => MessageModel.fromFirestore(doc))
+                .toList();
+            controller.add(Right(messages));
+          } catch (e) {
+            controller.add(Left(ChatFailure('Failed to parse messages: $e')));
+          }
+        },
+        onError: (Object e) {
+          controller.add(Left(ChatFailure(e.toString())));
+        },
+        onDone: controller.close,
+        cancelOnError: false,
+      );
+    });
   }
 
   @override
   Future<Either<Failure, Unit>> sendText(String linkId, String text) async {
+    final currentUser = _auth.currentUser;
+    if (currentUser == null) {
+      return Left(ChatFailure('Cannot send message: no authenticated user'));
+    }
     try {
       await _messagesRef(linkId).add({
         'type': 'text',
-        'senderId': _auth.currentUser!.uid,
+        'senderId': currentUser.uid,
         'text': text,
         'photoRef': null,
         'viewedBy': [],
@@ -64,7 +76,7 @@ class ChatRepositoryImpl implements ChatRepository {
       });
       return const Right(unit);
     } catch (e) {
-      return Left(ChatFailure('Failed to send message'));
+      return Left(ChatFailure('Failed to send message: $e'));
     }
   }
 
@@ -82,13 +94,16 @@ class ChatRepositoryImpl implements ChatRepository {
   Future<Either<Failure, Map<String, String?>>> getOtherUserProfile(String uid) async {
     try {
       final doc = await _firestore.collection('users').doc(uid).get();
+      if (!doc.exists || doc.data() == null) {
+        return Left(ChatFailure('User not found'));
+      }
       final data = doc.data()!;
       return Right({
         'displayName': data['displayName'] as String?,
         'photoUrl': data['photoUrl'] as String?,
       });
     } catch (e) {
-      return Left(ChatFailure('Could not load user profile'));
+      return Left(ChatFailure('Could not load user profile: $e'));
     }
   }
 }
