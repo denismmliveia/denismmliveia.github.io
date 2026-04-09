@@ -26,6 +26,7 @@ export async function createMemories(
   const dataA = profileA.data() ?? {};
   const dataB = profileB.data() ?? {};
 
+  // revokedBy is intentionally not persisted in memories (minimal-memory policy)
   const baseMemory = {
     linkedAt: linkData.linkedAt ?? null,
     endedAt,
@@ -84,8 +85,12 @@ export async function cleanupPhotos(linkId: string): Promise<void> {
       if (photoRef) {
         try {
           await bucket.file(photoRef).delete();
-        } catch {
-          // File may already be deleted; ignore
+        } catch (err: unknown) {
+          const code = (err as { code?: number }).code;
+          if (code !== 404) {
+            console.error(`cleanupPhotos: failed to delete ${photoRef}`, err);
+            // Still mark deletedFromStorage:true to avoid blocking retries on transient errors
+          }
         }
       }
       await doc.ref.update({ deletedFromStorage: true });
