@@ -107,8 +107,6 @@ class CardRepositoryImpl implements CardRepository {
         'relationshipStatus': FieldValue.delete(),
         'favoriteTheme': FieldValue.delete(),
         'hasCard': false,
-        'activeQrToken': FieldValue.delete(),
-        'qrTokenExpiresAt': FieldValue.delete(),
       });
       try {
         await _storage.ref('profiles/$uid/avatar.jpg').delete();

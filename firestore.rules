@@ -19,6 +19,7 @@ service cloud.firestore {
                         'relationshipStatus',
                         'favoriteSong',
                         'favoriteSongUrl',
+                        'favoriteTheme',
                         'hasCard',
                         'createdAt',
                         'updatedAt',
