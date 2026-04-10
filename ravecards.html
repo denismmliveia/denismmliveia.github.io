@@ -259,10 +259,10 @@ body{
 
 /* ── EXPIRY TICKER ── */
 .expiry-ticker{
-  position:absolute;top:8px;left:50%;
-  transform:translateX(-50%);
   text-align:center;opacity:0;pointer-events:none;
-  transition:opacity .4s ease;white-space:nowrap;
+  transition:opacity .4s ease;
+  padding:.5rem 0 .25rem;
+  width:100%;
 }
 .expiry-ticker.active{opacity:1;}
 .ex-lbl{font-size:.52rem;letter-spacing:3px;text-transform:uppercase;color:rgba(255,255,255,.25);margin-bottom:2px;}
@@ -473,10 +473,6 @@ footer{
           <div class="t-lbl">segundos para enlazar</div>
         </div>
         <div class="conn-label" id="conn-label">⬥ ENLAZADOS ⬥</div>
-        <div class="expiry-ticker" id="expiry">
-          <div class="ex-lbl">Caduca en</div>
-          <div class="ex-time">11:59:47</div>
-        </div>
       </div>
 
       <!-- CARD A -->
@@ -531,6 +527,11 @@ footer{
     </div><!-- /stage-cards -->
 
     <!-- CHAT (below cards) -->
+    <div class="expiry-ticker" id="expiry">
+      <div class="ex-lbl">Caduca en</div>
+      <div class="ex-time">11:59:47</div>
+    </div>
+
     <div class="chat-wrap" id="chat-wrap">
       <div class="chat-win">
         <div class="chat-head">
