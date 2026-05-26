@@ -5,3 +5,4 @@ __pycache__/
 carta_web/
 qr.png
 .superpowers/
+.pytest_cache/

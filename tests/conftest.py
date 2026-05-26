@@ -8,7 +8,7 @@ from models import Menu, Category, MenuItem
 
 
 @pytest.fixture
-def sample_menu():
+def sample_menu() -> "Menu":
     return Menu(
         restaurant_name="La Piazza",
         restaurant_type="italiano",
