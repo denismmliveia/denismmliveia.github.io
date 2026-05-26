@@ -34,5 +34,9 @@ def renovate_menu(menu: Menu) -> Menu:
         }],
     )
 
-    data = json.loads(response.content[0].text)
+    text = response.content[0].text.strip()
+    if text.startswith("```"):
+        text = text.split("```", 2)[-1] if text.count("```") >= 2 else text.lstrip("`")
+        text = text.lstrip("json").strip().rstrip("`").strip()
+    data = json.loads(text)
     return Menu(**data)

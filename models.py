@@ -5,8 +5,8 @@ from pydantic import BaseModel
 
 class MenuItem(BaseModel):
     name: str
-    description: str
-    original_description: str
+    description: str = ""
+    original_description: str = ""
     price: float
     ai_improved: bool = False
 

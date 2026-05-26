@@ -15,28 +15,32 @@ from web_generator import generate_web
 
 load_dotenv()
 
+if not os.getenv("ANTHROPIC_API_KEY"):
+    st.error("Falta ANTHROPIC_API_KEY en el archivo .env")
+    st.stop()
+
 
 def build_zip(menu: Menu, qr_url: str = "") -> bytes:
-    tmp_dir = tempfile.mkdtemp()
-    pdf_path = os.path.join(tmp_dir, "carta.pdf")
-    web_dir = os.path.join(tmp_dir, "carta_web")
-    qr_path = os.path.join(tmp_dir, "qr.png")
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        pdf_path = os.path.join(tmp_dir, "carta.pdf")
+        web_dir = os.path.join(tmp_dir, "carta_web")
+        qr_path = os.path.join(tmp_dir, "qr.png")
 
-    generate_pdf(menu, pdf_path)
-    generate_web(menu, web_dir, qr_path, url=qr_url)
+        generate_pdf(menu, pdf_path)
+        generate_web(menu, web_dir, qr_path, url=qr_url)
 
-    buffer = io.BytesIO()
-    with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as zf:
-        zf.write(pdf_path, "carta.pdf")
-        zf.write(qr_path, "qr.png")
-        for root, _, files in os.walk(web_dir):
-            for fname in files:
-                full = os.path.join(root, fname)
-                arcname = os.path.relpath(full, tmp_dir)
-                zf.write(full, arcname)
+        buffer = io.BytesIO()
+        with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as zf:
+            zf.write(pdf_path, "carta.pdf")
+            zf.write(qr_path, "qr.png")
+            for root, _, files in os.walk(web_dir):
+                for fname in files:
+                    full = os.path.join(root, fname)
+                    arcname = os.path.relpath(full, tmp_dir)
+                    zf.write(full, arcname)
 
-    buffer.seek(0)
-    return buffer.getvalue()
+        buffer.seek(0)
+        return buffer.getvalue()
 
 
 st.set_page_config(page_title="Renovador de Cartas", page_icon="🍽️", layout="wide")
@@ -83,7 +87,7 @@ if st.session_state["step"] == 1:
     )
 
     if foto:
-        st.image(foto, caption="Foto subida", use_column_width=True)
+        st.image(foto, caption="Foto subida", use_container_width=True)
 
     if st.button("Extraer carta con IA →", disabled=not foto, type="primary"):
         with tempfile.NamedTemporaryFile(
@@ -92,8 +96,13 @@ if st.session_state["step"] == 1:
             tmp.write(foto.read())
             tmp_path = tmp.name
 
-        with st.spinner("Claude está analizando la foto…"):
-            menu = extract_menu_from_image(tmp_path)
+        try:
+            with st.spinner("Claude está analizando la foto…"):
+                menu = extract_menu_from_image(tmp_path)
+        except Exception as e:
+            st.error(f"Error al analizar la foto: {e}")
+            os.unlink(tmp_path)
+            st.stop()
         os.unlink(tmp_path)
 
         menu.restaurant_name = nombre
@@ -149,8 +158,12 @@ if st.session_state["step"] == 3:
     st.header("Paso 3 — Mejoras de IA y estilo visual")
 
     if st.session_state["menu_renovado"] is None:
-        with st.spinner("Claude está mejorando la carta…"):
-            st.session_state["menu_renovado"] = renovate_menu(menu)
+        try:
+            with st.spinner("Claude está mejorando la carta…"):
+                st.session_state["menu_renovado"] = renovate_menu(menu)
+        except Exception as e:
+            st.error(f"Error al mejorar la carta: {e}")
+            st.stop()
         st.rerun()
 
     menu_renovado: Menu = st.session_state["menu_renovado"]
@@ -213,8 +226,12 @@ if st.session_state["step"] == 4:
         help="Si lo dejas vacío, el QR apuntará a carta_web/index.html (uso local)",
     )
 
-    with st.spinner("Generando PDF y web…"):
-        zip_bytes = build_zip(menu, qr_url)
+    cached_url = st.session_state.get("zip_url")
+    if "zip_bytes" not in st.session_state or cached_url != qr_url:
+        with st.spinner("Generando PDF y web…"):
+            st.session_state["zip_bytes"] = build_zip(menu, qr_url)
+            st.session_state["zip_url"] = qr_url
+    zip_bytes = st.session_state["zip_bytes"]
 
     st.success("✅ Carta generada correctamente")
     st.download_button(
@@ -228,6 +245,6 @@ if st.session_state["step"] == 4:
     st.caption("El ZIP incluye: `carta.pdf`, `carta_web/index.html` y `qr.png`")
 
     if st.button("🔄 Nueva carta"):
-        for key in ("menu_crudo", "menu_renovado", "step"):
+        for key in ("menu_crudo", "menu_renovado", "step", "zip_bytes", "zip_url"):
             st.session_state[key] = None
         st.rerun()
