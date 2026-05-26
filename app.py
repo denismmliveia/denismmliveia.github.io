@@ -77,3 +77,42 @@ if st.session_state["step"] == 1:
         st.session_state["menu_crudo"] = menu
         st.session_state["step"] = 2
         st.rerun()
+
+# ============================================================
+# PASO 2 — Revisar extracción
+# ============================================================
+if st.session_state["step"] == 2:
+    menu: Menu = st.session_state["menu_crudo"]
+    st.header("Paso 2 — Revisa los platos detectados")
+    st.caption(
+        "🟢 Verde = extraído correctamente · 🟠 Naranja = precio 0 o descripción vacía"
+    )
+
+    for cat_idx, category in enumerate(menu.categories):
+        st.subheader(category.name)
+        for item_idx, item in enumerate(category.items):
+            is_suspicious = item.price == 0.0 or item.description == ""
+            color = "🟠" if is_suspicious else "🟢"
+
+            with st.expander(f"{color} {item.name} — {item.price:.2f} €"):
+                new_name = st.text_input(
+                    "Nombre", value=item.name,
+                    key=f"name_{cat_idx}_{item_idx}"
+                )
+                new_desc = st.text_input(
+                    "Descripción", value=item.description,
+                    key=f"desc_{cat_idx}_{item_idx}"
+                )
+                new_price = st.number_input(
+                    "Precio (€)", value=float(item.price), min_value=0.0, step=0.5,
+                    key=f"price_{cat_idx}_{item_idx}"
+                )
+                menu.categories[cat_idx].items[item_idx].name = new_name
+                menu.categories[cat_idx].items[item_idx].description = new_desc
+                menu.categories[cat_idx].items[item_idx].original_description = new_desc
+                menu.categories[cat_idx].items[item_idx].price = new_price
+
+    if st.button("Continuar — mejorar con IA →", type="primary"):
+        st.session_state["menu_crudo"] = menu
+        st.session_state["step"] = 3
+        st.rerun()
