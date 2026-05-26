@@ -1,0 +1,7 @@
+.env
+__pycache__/
+*.pyc
+*.pdf
+carta_web/
+qr.png
+.superpowers/
