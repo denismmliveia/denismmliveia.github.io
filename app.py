@@ -15,6 +15,30 @@ from web_generator import generate_web
 
 load_dotenv()
 
+
+def build_zip(menu: Menu, qr_url: str = "") -> bytes:
+    tmp_dir = tempfile.mkdtemp()
+    pdf_path = os.path.join(tmp_dir, "carta.pdf")
+    web_dir = os.path.join(tmp_dir, "carta_web")
+    qr_path = os.path.join(tmp_dir, "qr.png")
+
+    generate_pdf(menu, pdf_path)
+    generate_web(menu, web_dir, qr_path, url=qr_url)
+
+    buffer = io.BytesIO()
+    with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as zf:
+        zf.write(pdf_path, "carta.pdf")
+        zf.write(qr_path, "qr.png")
+        for root, _, files in os.walk(web_dir):
+            for fname in files:
+                full = os.path.join(root, fname)
+                arcname = os.path.relpath(full, tmp_dir)
+                zf.write(full, arcname)
+
+    buffer.seek(0)
+    return buffer.getvalue()
+
+
 st.set_page_config(page_title="Renovador de Cartas", page_icon="🍽️", layout="wide")
 st.title("🍽️ Renovador de Cartas de Restaurante")
 
@@ -174,4 +198,36 @@ if st.session_state["step"] == 3:
 
     if st.button("Generar carta →", type="primary"):
         st.session_state["step"] = 4
+        st.rerun()
+
+# ============================================================
+# PASO 4 — Generar y descargar
+# ============================================================
+if st.session_state["step"] == 4:
+    menu: Menu = st.session_state["menu_renovado"]
+    st.header("Paso 4 — Generar y descargar")
+
+    qr_url = st.text_input(
+        "URL pública para el QR (opcional)",
+        placeholder="https://mirestaurante.com/carta",
+        help="Si lo dejas vacío, el QR apuntará a carta_web/index.html (uso local)",
+    )
+
+    with st.spinner("Generando PDF y web…"):
+        zip_bytes = build_zip(menu, qr_url)
+
+    st.success("✅ Carta generada correctamente")
+    st.download_button(
+        label="⬇️ Descargar todo (.zip)",
+        data=zip_bytes,
+        file_name=f"carta_{menu.restaurant_name.replace(' ', '_') or 'restaurante'}.zip",
+        mime="application/zip",
+        type="primary",
+    )
+
+    st.caption("El ZIP incluye: `carta.pdf`, `carta_web/index.html` y `qr.png`")
+
+    if st.button("🔄 Nueva carta"):
+        for key in ("menu_crudo", "menu_renovado", "step"):
+            st.session_state[key] = None
         st.rerun()
