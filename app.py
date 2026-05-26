@@ -116,3 +116,62 @@ if st.session_state["step"] == 2:
         st.session_state["menu_crudo"] = menu
         st.session_state["step"] = 3
         st.rerun()
+
+# ============================================================
+# PASO 3 — Mejoras IA + estilo visual
+# ============================================================
+if st.session_state["step"] == 3:
+    menu: Menu = st.session_state["menu_crudo"]
+    st.header("Paso 3 — Mejoras de IA y estilo visual")
+
+    if st.session_state["menu_renovado"] is None:
+        with st.spinner("Claude está mejorando la carta…"):
+            st.session_state["menu_renovado"] = renovate_menu(menu)
+        st.rerun()
+
+    menu_renovado: Menu = st.session_state["menu_renovado"]
+
+    # Sugerencias de precios
+    if menu_renovado.price_suggestions:
+        with st.expander("💡 Sugerencias de precios"):
+            for sug in menu_renovado.price_suggestions:
+                st.info(sug)
+
+    # Aceptar / rechazar por ítem
+    st.subheader("Mejoras de descripciones")
+    for cat_idx, category in enumerate(menu_renovado.categories):
+        st.markdown(f"**{category.name}**")
+        for item_idx, item in enumerate(category.items):
+            if item.ai_improved:
+                col1, col2, col3 = st.columns([3, 1, 1])
+                with col1:
+                    st.markdown(
+                        f"**{item.name}**  \n"
+                        f"~~{item.original_description}~~  \n"
+                        f"✨ {item.description}"
+                    )
+                with col2:
+                    if st.button("✓ Aceptar", key=f"ok_{cat_idx}_{item_idx}"):
+                        pass  # descripción ya está actualizada
+                with col3:
+                    if st.button("✗ Rechazar", key=f"ko_{cat_idx}_{item_idx}"):
+                        menu_renovado.categories[cat_idx].items[item_idx].description = item.original_description
+                        menu_renovado.categories[cat_idx].items[item_idx].ai_improved = False
+                        st.session_state["menu_renovado"] = menu_renovado
+                        st.rerun()
+
+    # Selector de estilo
+    st.subheader("Estilo visual")
+    style_labels = {"rustico": "🪵 Rústico", "elegante": "✨ Elegante", "fresco": "🌿 Fresco"}
+    selected_style = st.radio(
+        "Elige el estilo de la carta",
+        options=list(style_labels.keys()),
+        format_func=lambda x: style_labels[x],
+        horizontal=True,
+    )
+    menu_renovado.style = selected_style
+    st.session_state["menu_renovado"] = menu_renovado
+
+    if st.button("Generar carta →", type="primary"):
+        st.session_state["step"] = 4
+        st.rerun()
