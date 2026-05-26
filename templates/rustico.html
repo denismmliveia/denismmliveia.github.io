@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ menu.restaurant_name or "Carta del Restaurante" }}</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 2cm;
+        }
+
+        body {
+            background-color: #fdf6e3;
+            color: #3b2a1a;
+            font-family: Georgia, "Times New Roman", serif;
+            margin: 0;
+            padding: 0;
+            line-height: 1.6;
+        }
+
+        h1 {
+            color: #5a3a1a;
+            font-size: 2.5em;
+            margin: 0 0 0.5em 0;
+            border-bottom: 3px double #8b6340;
+            padding-bottom: 0.3em;
+            text-align: center;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #3b2a1a;
+            font-style: italic;
+            margin: 0 0 2em 0;
+            font-size: 1.1em;
+        }
+
+        h2 {
+            color: #5a3a1a;
+            font-size: 1.3em;
+            margin: 1.5em 0 1em 0;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            border-bottom: 1px solid #c8a87a;
+            padding-bottom: 0.5em;
+        }
+
+        .menu-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1.5em;
+            gap: 1em;
+        }
+
+        .item-name {
+            font-weight: bold;
+            color: #3b2a1a;
+            flex: 1;
+        }
+
+        .item-price {
+            color: #5a3a1a;
+            font-weight: bold;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        .item-description {
+            font-style: italic;
+            color: #5a3a1a;
+            margin: 0.5em 0 0 0;
+            font-size: 0.95em;
+        }
+
+        .category {
+            margin-bottom: 2em;
+        }
+    </style>
+</head>
+<body>
+    <h1>{{ menu.restaurant_name or "Carta del Restaurante" }}</h1>
+    <p class="subtitle">{{ menu.restaurant_type }}</p>
+
+    {% for category in menu.categories %}
+    <div class="category">
+        <h2>{{ category.name }}</h2>
+        {% for item in category.items %}
+        <div class="menu-item">
+            <div>
+                <div class="item-name">{{ item.name }}</div>
+                {% if item.description %}
+                <div class="item-description">{{ item.description }}</div>
+                {% endif %}
+            </div>
+            <div class="item-price">€ {{ "%.2f"|format(item.price) }}</div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endfor %}
+</body>
+</html>

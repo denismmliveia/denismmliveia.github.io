@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ menu.restaurant_name or "Carta" }}</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 2cm;
+        }
+
+        body {
+            background-color: #f0f7f4;
+            color: #1a3a2a;
+            font-family: Verdana, Geneva, sans-serif;
+            margin: 0;
+            padding: 0;
+            line-height: 1.6;
+        }
+
+        h1 {
+            color: #1a5c3a;
+            font-size: 2.5em;
+            margin: 0 0 0.5em 0;
+            text-align: center;
+            padding-bottom: 0.3em;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #1a3a2a;
+            margin: 0 0 2em 0;
+            font-size: 1.1em;
+        }
+
+        h2 {
+            background-color: #2a7a5a;
+            color: #ffffff;
+            font-size: 1.1em;
+            margin: 1.5em 0 1em 0;
+            padding: 0.7em 1em;
+            border-radius: 4px;
+        }
+
+        .menu-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1.5em;
+            gap: 1em;
+        }
+
+        .item-info {
+            flex: 1;
+        }
+
+        .item-name {
+            font-weight: bold;
+            color: #1a3a2a;
+            margin: 0;
+        }
+
+        .item-description {
+            color: #1a3a2a;
+            margin: 0.3em 0 0 0;
+            font-size: 0.95em;
+            font-style: italic;
+        }
+
+        .item-price {
+            color: #1a5c3a;
+            font-weight: bold;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        .category {
+            margin-bottom: 2em;
+        }
+    </style>
+</head>
+<body>
+    <h1>{{ menu.restaurant_name or "Carta" }}</h1>
+    <p class="subtitle">{{ menu.restaurant_type }}</p>
+
+    {% for category in menu.categories %}
+    <div class="category">
+        <h2>{{ category.name }}</h2>
+        {% for item in category.items %}
+        <div class="menu-item">
+            <div class="item-info">
+                <div class="item-name">{{ item.name }}</div>
+                {% if item.description %}
+                <div class="item-description">{{ item.description }}</div>
+                {% endif %}
+            </div>
+            <div class="item-price">€ {{ "%.2f"|format(item.price) }}</div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endfor %}
+</body>
+</html>
