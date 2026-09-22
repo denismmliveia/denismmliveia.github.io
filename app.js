@@ -15,46 +15,87 @@ document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
 motionButton.addEventListener('click', () => { motionPaused = !motionPaused; updateMotion(); });
 reducedMotion.addEventListener('change', event => { motionPaused = event.matches; updateMotion(); });
 
-// A quiet original generative ambient score. Audio only starts on user interaction.
+// Prefer playback on entry; browsers may require the first real user gesture.
 const soundButton = document.querySelector('#sound');
 const soundLabel = document.querySelector('#sound-label');
+const volumeControl = document.querySelector('#volume');
+const audioHint = document.querySelector('#audio-hint');
 let audioContext, master, audioTimer, playing = false, chordIndex = 0;
+let wantsAudio = true;
 const chords = [[130.81,164.81,196,246.94],[110,130.81,164.81,196],[87.31,130.81,174.61,220],[98,146.83,196,246.94]];
 function playChord() {
-  if (!playing) return;
+  if (!playing || !audioContext || audioContext.state !== 'running') return;
   const now = audioContext.currentTime;
-  const notes = chords[chordIndex++ % chords.length];
-  notes.forEach((frequency, index) => {
+  chords[chordIndex++ % chords.length].forEach((frequency, index) => {
     const voice = audioContext.createOscillator();
     const envelope = audioContext.createGain();
-    voice.type = 'sine'; voice.frequency.value = frequency;
-    envelope.gain.setValueAtTime(0, now);
-    envelope.gain.linearRampToValueAtTime(0.085, now + 2.8);
-    envelope.gain.exponentialRampToValueAtTime(0.0001, now + 9);
+    // An octave higher and gentle harmonics carry through small phone speakers.
+    voice.type = 'triangle'; voice.frequency.value = frequency * 2;
+    const start = now + index * .1;
+    envelope.gain.setValueAtTime(0, start);
+    envelope.gain.linearRampToValueAtTime(.12, start + 1.1);
+    envelope.gain.linearRampToValueAtTime(.075, start + 6);
+    envelope.gain.exponentialRampToValueAtTime(.0001, start + 8.8);
     voice.connect(envelope); envelope.connect(master);
-    voice.start(now + index * 0.12); voice.stop(now + 9.1);
+    voice.start(start); voice.stop(start + 9);
     voice.onended = () => { voice.disconnect(); envelope.disconnect(); };
   });
   audioTimer = window.setTimeout(playChord, 6500);
 }
-async function stopAudio() {
-  playing = false; clearTimeout(audioTimer);
-  soundButton.setAttribute('aria-pressed', 'false'); soundLabel.textContent = 'Activar ambiente';
-  if (audioContext) { const old = audioContext; audioContext = null; await old.close(); }
+function syncAudioState() {
+  const running = wantsAudio && !document.hidden && audioContext?.state === 'running';
+  if (running && !playing) { playing = true; playChord(); }
+  if (!running) { playing = false; clearTimeout(audioTimer); }
+  soundButton.setAttribute('aria-pressed', String(Boolean(running)));
+  soundLabel.textContent = running ? 'Pausar música' : wantsAudio ? 'Activar música' : 'Reanudar música';
+  audioHint.textContent = running ? 'Música ambiente' : wantsAudio ? 'La música comienza con tu primer toque' : 'Música en pausa';
 }
-soundButton.addEventListener('click', async () => {
-  soundButton.disabled = true;
+function startAudio() {
+  if (!wantsAudio || document.hidden) return;
   try {
-    if (playing) { await stopAudio(); return; }
-    const AudioEngine = window.AudioContext || window.webkitAudioContext;
-    if (!AudioEngine) throw new Error('Audio unavailable');
-    audioContext = new AudioEngine(); master = audioContext.createGain();
-    master.gain.value = 0.22; master.connect(audioContext.destination);
-    await audioContext.resume(); playing = true; chordIndex = 0; playChord();
-    soundButton.setAttribute('aria-pressed', 'true'); soundLabel.textContent = 'Pausar ambiente';
-  } catch { await stopAudio(); soundLabel.textContent = 'Audio no disponible'; }
-  finally { soundButton.disabled = false; }
+    if (!audioContext || audioContext.state === 'closed') {
+      const AudioEngine = window.AudioContext || window.webkitAudioContext;
+      if (!AudioEngine) throw new Error('Audio unavailable');
+      audioContext = new AudioEngine(); master = audioContext.createGain();
+      const compressor = audioContext.createDynamicsCompressor();
+      compressor.threshold.value = -12; compressor.knee.value = 12; compressor.ratio.value = 4;
+      master.gain.value = Number(volumeControl.value) / 100 * .9;
+      master.connect(compressor); compressor.connect(audioContext.destination);
+      audioContext.addEventListener('statechange', syncAudioState);
+    }
+    // Do not await: blocked autoplay can leave resume pending until a later tap.
+    audioContext.resume().then(syncAudioState).catch(() => syncAudioState());
+    syncAudioState();
+  } catch {
+    soundLabel.textContent = 'Audio no disponible';
+    audioHint.textContent = 'Este navegador no permite reproducir la música';
+    soundButton.disabled = true;
+  }
+}
+soundButton.addEventListener('click', () => {
+  if (playing) {
+    wantsAudio = false; playing = false; clearTimeout(audioTimer);
+    audioContext?.suspend().then(syncAudioState).catch(syncAudioState);
+    syncAudioState();
+  } else { wantsAudio = true; startAudio(); }
 });
+volumeControl.addEventListener('input', () => {
+  volumeControl.setAttribute('aria-valuetext', volumeControl.value + ' por ciento');
+  if (master) master.gain.setTargetAtTime(Number(volumeControl.value) / 100 * .9, audioContext.currentTime, .04);
+});
+function unlockAudio(event) {
+  if (event.target.closest('#sound')) return;
+  if (wantsAudio && !playing) startAudio();
+}
+document.addEventListener('pointerup', unlockAudio);
+document.addEventListener('keydown', event => { if (!event.repeat) unlockAudio(event); });
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) {
+    playing = false; clearTimeout(audioTimer);
+    audioContext?.suspend().then(syncAudioState).catch(syncAudioState);
+  } else if (wantsAudio) startAudio();
+});
+startAudio();
 
 // The collection becomes an accessible, manually controlled colour specimen book.
 // Without JavaScript the complete photographic gallery remains available.
@@ -174,7 +215,7 @@ motionButton.addEventListener('click', updateThread);
 reducedMotion.addEventListener('change', updateThread);
 new ResizeObserver(measureThread).observe(mainSurface);
 measureThread();
-document.addEventListener('visibilitychange', () => { if (document.hidden && playing) stopAudio(); });
+
 
 const dialog = document.querySelector('#order-dialog');
 const orderForm = document.querySelector('#order-form');
