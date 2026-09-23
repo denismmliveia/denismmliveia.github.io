@@ -20,7 +20,7 @@ const soundButton = document.querySelector('#sound');
 const soundLabel = document.querySelector('#sound-label');
 const volumeControl = document.querySelector('#volume');
 const audioHint = document.querySelector('#audio-hint');
-let audioContext, master, audioTimer, playing = false, chordIndex = 0;
+let audioContext, master, warmWave, audioTimer, playing = false, chordIndex = 0;
 let wantsAudio = true;
 const chords = [[130.81,164.81,196,246.94],[110,130.81,164.81,196],[87.31,130.81,174.61,220],[98,146.83,196,246.94]];
 function playChord() {
@@ -29,8 +29,8 @@ function playChord() {
   chords[chordIndex++ % chords.length].forEach((frequency, index) => {
     const voice = audioContext.createOscillator();
     const envelope = audioContext.createGain();
-    // An octave higher and gentle harmonics carry through small phone speakers.
-    voice.type = 'triangle'; voice.frequency.value = frequency * 2;
+    // A rounded fundamental with faint overtones softens the original timbre.
+    voice.setPeriodicWave(warmWave); voice.frequency.value = frequency * 2;
     const start = now + index * .1;
     envelope.gain.setValueAtTime(0, start);
     envelope.gain.linearRampToValueAtTime(.12, start + 1.1);
@@ -57,10 +57,16 @@ function startAudio() {
       const AudioEngine = window.AudioContext || window.webkitAudioContext;
       if (!AudioEngine) throw new Error('Audio unavailable');
       audioContext = new AudioEngine(); master = audioContext.createGain();
+      warmWave = audioContext.createPeriodicWave(
+        new Float32Array([0, 0, 0, 0]), new Float32Array([0, 1, .10, .025])
+      );
+      const warmth = audioContext.createBiquadFilter();
+      warmth.type = 'lowpass'; warmth.frequency.value = 1400; warmth.Q.value = .5;
       const compressor = audioContext.createDynamicsCompressor();
-      compressor.threshold.value = -12; compressor.knee.value = 12; compressor.ratio.value = 4;
+      compressor.threshold.value = -12; compressor.knee.value = 18; compressor.ratio.value = 2;
+      compressor.attack.value = .04; compressor.release.value = .5;
       master.gain.value = Number(volumeControl.value) / 100 * .9;
-      master.connect(compressor); compressor.connect(audioContext.destination);
+      master.connect(warmth); warmth.connect(compressor); compressor.connect(audioContext.destination);
       audioContext.addEventListener('statechange', syncAudioState);
     }
     // Do not await: blocked autoplay can leave resume pending until a later tap.
