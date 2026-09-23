@@ -15,13 +15,14 @@ document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
 motionButton.addEventListener('click', () => { motionPaused = !motionPaused; updateMotion(); });
 reducedMotion.addEventListener('change', event => { motionPaused = event.matches; updateMotion(); });
 
-// Prefer playback on entry; browsers may require the first real user gesture.
+// The welcome invitation provides an explicit gesture for music playback.
 const soundButton = document.querySelector('#sound');
 const soundLabel = document.querySelector('#sound-label');
 const volumeControl = document.querySelector('#volume');
 const audioHint = document.querySelector('#audio-hint');
 let audioContext, master, warmWave, audioTimer, playing = false, chordIndex = 0;
-let wantsAudio = true;
+const welcomeDialog = document.querySelector('#welcome-dialog');
+let wantsAudio = false;
 const chords = [[130.81,164.81,196,246.94],[110,130.81,164.81,196],[87.31,130.81,174.61,220],[98,146.83,196,246.94]];
 function playChord() {
   if (!playing || !audioContext || audioContext.state !== 'running') return;
@@ -90,7 +91,7 @@ volumeControl.addEventListener('input', () => {
   if (master) master.gain.setTargetAtTime(Number(volumeControl.value) / 100 * .9, audioContext.currentTime, .04);
 });
 function unlockAudio(event) {
-  if (event.target.closest('#sound')) return;
+  if (welcomeDialog.open || event.target.closest('#sound')) return;
   if (wantsAudio && !playing) startAudio();
 }
 document.addEventListener('pointerup', unlockAudio);
@@ -101,7 +102,26 @@ document.addEventListener('visibilitychange', () => {
     audioContext?.suspend().then(syncAudioState).catch(syncAudioState);
   } else if (wantsAudio) startAudio();
 });
-startAudio();
+function enterMoneg(withMusic) {
+  if (!welcomeDialog.open) return;
+  welcomeDialog.close();
+  document.documentElement.classList.remove('welcome-open');
+  wantsAudio = withMusic;
+  // Keep resume in this click handler so mobile browsers accept the gesture.
+  if (withMusic) startAudio();
+  else syncAudioState();
+  document.querySelector('#main').focus({ preventScroll: true });
+}
+document.querySelector('#enter-with-music').addEventListener('click', () => enterMoneg(true));
+document.querySelector('#enter-silently').addEventListener('click', () => enterMoneg(false));
+welcomeDialog.addEventListener('cancel', event => { event.preventDefault(); enterMoneg(false); });
+if (typeof welcomeDialog.showModal === 'function') {
+  welcomeDialog.showModal();
+  document.documentElement.classList.add('welcome-open');
+} else {
+  // The site and its existing music button remain usable in older browsers.
+  syncAudioState();
+}
 
 // The collection becomes an accessible, manually controlled colour specimen book.
 // Without JavaScript the complete photographic gallery remains available.
