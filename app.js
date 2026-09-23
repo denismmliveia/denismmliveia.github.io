@@ -183,7 +183,7 @@ const mainSurface = document.querySelector('main');
 const threadSvg = document.querySelector('.signature-thread');
 const threadInk = threadSvg.querySelector('.thread-ink');
 const interlude = document.querySelector('.thread-interlude');
-let threadHeight = 1, mainTop = 0, interludeTop = 0, queuedThreadFrame = false;
+let threadLength = 1, threadHeight = 1, mainTop = 0, interludeTop = 0, queuedThreadFrame = false;
 function measureThread() {
   const width = mainSurface.clientWidth;
   threadHeight = mainSurface.offsetHeight;
@@ -195,6 +195,7 @@ function measureThread() {
   const path = `M ${left} 30 C ${left+18} 100 ${left-14} 190 ${left} 260 L ${left} ${crossing-45} C ${left} ${crossing+10} ${width*.22} ${crossing} ${width*.40} ${crossing} C ${width*.67} ${crossing} ${right} ${crossing-40} ${right} ${crossing+55} L ${right} ${universeTop-40} C ${right} ${universeTop+15} ${width*.92} ${universeTop+24} ${width*.93} ${universeTop-5} C ${width*.94} ${universeTop-40} ${right} ${universeTop-5} ${right} ${universeTop+55} L ${right} ${threadHeight-65}`;
   threadSvg.setAttribute('viewBox', `0 0 ${width} ${threadHeight}`);
   threadSvg.querySelectorAll('path').forEach(line => line.setAttribute('d', path));
+  threadLength = Math.max(1, threadInk.getTotalLength());
   updateThread();
 }
 function updateThread() {
@@ -202,7 +203,11 @@ function updateThread() {
   if (motionPaused || reducedMotion.matches) {
     threadInk.style.strokeDashoffset = '0'; interlude.style.removeProperty('--interlude-shift'); return;
   }
-  const progress = Math.max(0, Math.min(1, (window.scrollY + window.innerHeight * .9 - mainTop) / threadHeight));
+  const initialLength = Math.min(160, Math.max(100, window.innerHeight * .18));
+  const initialProgress = Math.min(1, initialLength / threadLength);
+  const scrollRange = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
+  const scrollProgress = Math.max(0, Math.min(1, window.scrollY / scrollRange));
+  const progress = initialProgress + (1 - initialProgress) * scrollProgress;
   threadInk.style.strokeDashoffset = String(1 - progress);
   const shift = Math.max(-18, Math.min(18, (window.scrollY - mainTop - interludeTop + window.innerHeight * .5) * .04));
   interlude.style.setProperty('--interlude-shift', `${shift}px`);
